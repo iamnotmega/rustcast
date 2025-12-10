@@ -3,7 +3,10 @@ use crate::macos::focus_this_app;
 
 use global_hotkey::{GlobalHotKeyEvent, HotKeyState};
 use iced::Fill;
+use iced::alignment::Vertical;
 use iced::futures;
+use iced::keyboard;
+use iced::keyboard::key::Named;
 use iced::stream;
 use iced::widget::Button;
 use iced::widget::Row;
@@ -88,24 +91,22 @@ pub struct App {
     open_command: String,
     icon_path: Option<PathBuf>,
     name: String,
-
 }
 
 impl App {
-    pub fn new(name: String, command: String, icon_path: Option<PathBuf>) -> App {
-        App {
-            open_command: command,
-            icon_path,
-            name,
-        }
-    }
-
     pub fn render(&self) -> impl Into<iced::Element<'_, Message>> {
         let mut tile = Row::new().width(Fill).height(55);
 
         tile = tile.push(
-            Button::new(Text::new(self.name.clone()))
-                .on_press(Message::RunShellCommand(self.open_command.clone())),
+            Button::new(
+                Text::new(self.name.clone())
+                    .height(Fill)
+                    .width(Fill)
+                    .align_y(Vertical::Center),
+            )
+            .on_press(Message::RunShellCommand(self.open_command.clone()))
+            .width(Fill)
+            .height(Fill),
         );
 
         tile
@@ -120,6 +121,7 @@ pub enum Message {
     HideWindow(Id),
     _Nothing,
     RunShellCommand(String),
+    ClearSearchResults,
 }
 
 #[derive(Debug, Clone)]
@@ -160,7 +162,7 @@ pub struct Tile {
     results: Vec<App>,
     options: Vec<App>,
     visible: bool,
-    frontmost: Option<Retained<NSRunningApplication>>
+    frontmost: Option<Retained<NSRunningApplication>>,
 }
 
 impl Tile {
@@ -175,6 +177,7 @@ impl Tile {
 
         let mut apps = get_installed_apps("/Applications/");
         apps.append(&mut get_installed_apps("/System/Applications/"));
+        apps.append(&mut get_installed_apps("/System/Applications/Utilities/"));
 
         (
             Self {
@@ -183,7 +186,7 @@ impl Tile {
                 results: vec![],
                 options: apps,
                 visible: true,
-                frontmost: None
+                frontmost: None,
             },
             Task::batch([open.map(|_| Message::OpenWindow)]),
         )
@@ -252,7 +255,12 @@ impl Tile {
             Message::HideWindow(a) => {
                 macos::set_activation_policy_regular();
                 self.restore_frontmost();
-                window::close(a)
+                self.visible = false;
+                Task::batch([window::close(a), Task::done(Message::ClearSearchResults)])
+            }
+            Message::ClearSearchResults => {
+                self.results = vec![];
+                Task::none()
             }
 
             Message::_Nothing => Task::none(),
@@ -298,25 +306,46 @@ impl Tile {
             Subscription::run(handle_hotkeys),
             window::close_events().map(|a| Message::HideWindow(a)),
             window::resize_events().map(|_| Message::_Nothing),
+            keyboard::listen().filter_map(|event| {
+                #[allow(unused)]
+                if let keyboard::Event::KeyPressed {
+                    key,
+                    modified_key,
+                    physical_key,
+                    location,
+                    modifiers,
+                    text,
+                    repeat,
+                } = event
+                {
+                    match key {
+                        keyboard::Key::Named(Named::Escape) => {
+                            Some(Message::KeyPressed(65598))
+                        }
+                        _ => None
+                    }
+                } else {
+                    None
+                }
+            }),
         ])
     }
 
-
-        pub fn capture_frontmost(&mut self) {
+    pub fn capture_frontmost(&mut self) {
         use objc2_app_kit::NSWorkspace;
 
         let ws = NSWorkspace::sharedWorkspace();
         self.frontmost = ws.frontmostApplication();
     }
 
+    #[allow(deprecated)]
     pub fn restore_frontmost(&mut self) {
         use objc2_app_kit::NSApplicationActivationOptions;
 
         if let Some(app) = self.frontmost.take() {
-                app.activateWithOptions(NSApplicationActivationOptions::ActivateIgnoringOtherApps);
+            app.activateWithOptions(NSApplicationActivationOptions::ActivateIgnoringOtherApps);
         }
     }
-
 }
 
 fn handle_hotkeys() -> impl futures::Stream<Item = Message> {

@@ -60,4 +60,3 @@ pub fn focus_this_app() {
     app.setActivationPolicy(objc2_app_kit::NSApplicationActivationPolicy::Regular);
     app.activateIgnoringOtherApps(true);
 }
-
