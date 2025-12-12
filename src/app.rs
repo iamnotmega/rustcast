@@ -17,8 +17,6 @@ use iced::window::{self, Id, Settings};
 use iced::{Element, Subscription, Task, Theme};
 use objc2::rc::Retained;
 use objc2_app_kit::NSRunningApplication;
-use tray_item::IconSource;
-use tray_item::TrayItem;
 
 use std::cmp::min;
 use std::fs;
@@ -43,22 +41,6 @@ fn log_error(msg: &str) {
 fn log_error_and_exit(msg: &str) {
     log_error(msg);
     exit(-1)
-}
-
-pub fn create_tray_icons() {
-    let mut tray = TrayItem::new(
-        "RustCast",
-        IconSource::Data {
-            height: 10,
-            width: 10,
-            data: include_bytes!("../docs/icon.png").to_vec(),
-        },
-    )
-    .unwrap();
-
-    let inner = tray.inner_mut();
-    inner.add_quit_item("Quit");
-    inner.display();
 }
 
 pub fn get_installed_apps(dir: impl AsRef<Path>) -> Vec<App> {

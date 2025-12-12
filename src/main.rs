@@ -16,12 +16,11 @@ fn main() -> iced::Result {
 
     let manager = GlobalHotKeyManager::new().unwrap();
     let altspace = HotKey::new(Some(Modifiers::ALT), Code::Space);
-    //    let esc = HotKey::new(None, Code::Escape);
     manager
         .register_all(&[altspace])
         .expect("Unable to register hotkey");
 
-    iced::daemon(Tile::new, Tile::update, Tile::view)
+    iced::daemon(Tile::new, Tile::update, crate::app::view)
         .subscription(Tile::subscription)
         .theme(Tile::theme)
         .run()
