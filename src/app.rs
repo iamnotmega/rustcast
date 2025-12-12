@@ -17,6 +17,8 @@ use iced::window::{self, Id, Settings};
 use iced::{Element, Subscription, Task, Theme};
 use objc2::rc::Retained;
 use objc2_app_kit::NSRunningApplication;
+use tray_item::IconSource;
+use tray_item::TrayItem;
 
 use std::cmp::min;
 use std::fs;
@@ -41,6 +43,22 @@ fn log_error(msg: &str) {
 fn log_error_and_exit(msg: &str) {
     log_error(msg);
     exit(-1)
+}
+
+pub fn create_tray_icons() {
+    let mut tray = TrayItem::new(
+        "RustCast",
+        IconSource::Data {
+            height: 10,
+            width: 10,
+            data: include_bytes!("../docs/icon.png").to_vec(),
+        },
+    )
+    .unwrap();
+
+    let inner = tray.inner_mut();
+    inner.add_quit_item("Quit");
+    inner.display();
 }
 
 pub fn get_installed_apps(dir: impl AsRef<Path>) -> Vec<App> {
@@ -175,6 +193,7 @@ pub struct Tile {
 impl Tile {
     /// A base window
     pub fn new() -> (Self, Task<Message>) {
+//        let _ = create_tray_icons();
         let (id, open) = window::open(default_settings());
         let _ = window::run(id, |handle| {
             macos::macos_window_config(
@@ -231,7 +250,15 @@ impl Tile {
                         icon_path: None,
                         name: rand::random_range(0..100).to_string(),
                         name_lc: String::new(),
-                    }]
+                    }];
+                    return window::resize(
+                        id,
+                        iced::Size {
+                            width: WINDOW_WIDTH,
+                            height: DEFAULT_WINDOW_HEIGHT + 55.,
+                        },
+                    );
+
                 }
 
                 let filter_vec = if self.query_lc.starts_with(&self.prev_query_lc) {
