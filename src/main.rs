@@ -20,7 +20,7 @@ fn main() -> iced::Result {
         .register_all(&[altspace])
         .expect("Unable to register hotkey");
 
-    iced::daemon(Tile::new, Tile::update, crate::app::view)
+    iced::daemon(Tile::new, Tile::update, Tile::view)
         .subscription(Tile::subscription)
         .theme(Tile::theme)
         .run()

@@ -2,6 +2,7 @@ use crate::macos;
 use crate::macos::focus_this_app;
 
 use global_hotkey::{GlobalHotKeyEvent, HotKeyState};
+use iced::Alignment;
 use iced::Fill;
 use iced::alignment::Vertical;
 use iced::futures;
@@ -11,10 +12,16 @@ use iced::stream;
 use iced::widget::Button;
 use iced::widget::Row;
 use iced::widget::Text;
+use iced::widget::container;
+use iced::widget::image::Handle;
+use iced::widget::image::Viewer;
+use iced::widget::scrollable;
 use iced::widget::text::LineHeight;
 use iced::widget::{Column, operation, space, text_input};
 use iced::window::{self, Id, Settings};
 use iced::{Element, Subscription, Task, Theme};
+use icns::IconFamily;
+use image::RgbaImage;
 use objc2::rc::Retained;
 use objc2_app_kit::NSRunningApplication;
 
@@ -41,6 +48,25 @@ fn log_error(msg: &str) {
 fn log_error_and_exit(msg: &str) {
     log_error(msg);
     exit(-1)
+}
+
+fn handle_from_icns(path: &Path) -> Option<Handle> {
+    let data = std::fs::read(path).ok()?;
+    let family = IconFamily::read(std::io::Cursor::new(&data)).ok()?;
+
+    let icon_type = family.available_icons();
+
+    let icon = family.get_icon_with_type(*icon_type.get(0)?).ok()?;
+    let image = RgbaImage::from_raw(
+        icon.width() as u32,
+        icon.height() as u32,
+        icon.data().to_vec(),
+    )?;
+    Some(Handle::from_rgba(
+        image.width(),
+        image.height(),
+        image.into_raw(),
+    ))
 }
 
 pub fn get_installed_apps(dir: impl AsRef<Path>) -> Vec<App> {
@@ -75,11 +101,38 @@ pub fn get_installed_apps(dir: impl AsRef<Path>) -> Vec<App> {
                 exit(-1)
             });
 
+            let direntry = fs::read_dir(format!("{}/Contents/Resources", path_str))
+                .into_iter()
+                .flatten()
+                .filter_map(|x| {
+                    let file = x.ok()?;
+                    let name = file.file_name();
+                    let file_name = name.to_str()?;
+                    if file_name.ends_with(".icns") {
+                        Some(file.path())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<PathBuf>>();
+
+            let icons = if direntry.len() > 1 {
+                let icns_vec = direntry
+                    .iter()
+                    .filter(|x| x.ends_with("AppIcon.icns"))
+                    .collect::<Vec<&PathBuf>>();
+                handle_from_icns(icns_vec.first().unwrap_or(&&PathBuf::new()))
+            } else if direntry.len() > 0 {
+                handle_from_icns(direntry.first().unwrap_or(&PathBuf::new()))
+            } else {
+                None
+            };
+
             let name = file_name.strip_suffix(".app").unwrap().to_string();
 
             Some(App {
                 open_command: format!("open {}", path_str),
-                icon_path: None,
+                icons,
                 name_lc: name.to_lowercase(),
                 name,
             })
@@ -91,7 +144,7 @@ pub fn get_installed_apps(dir: impl AsRef<Path>) -> Vec<App> {
 #[derive(Debug, Clone)]
 pub struct App {
     open_command: String,
-    icon_path: Option<PathBuf>,
+    icons: Option<iced::widget::image::Handle>,
     name: String,
     name_lc: String,
 }
@@ -99,6 +152,18 @@ pub struct App {
 impl App {
     pub fn render(&self) -> impl Into<iced::Element<'_, Message>> {
         let mut tile = Row::new().width(Fill).height(55);
+
+        if let Some(icon) = &self.icons {
+            tile = tile
+                .push(Viewer::new(icon).height(35).width(35))
+                .align_y(Alignment::Center);
+        } else {
+            tile = tile
+                .push(space().height(Fill))
+                .width(55)
+                .height(55)
+                .align_y(Alignment::Center);
+        }
 
         tile = tile.push(
             Button::new(
@@ -108,11 +173,20 @@ impl App {
                     .align_y(Vertical::Center),
             )
             .on_press(Message::RunShellCommand(self.open_command.clone()))
-            .width(Fill)
-            .height(Fill),
-        );
-
-        tile
+            .style(|_, _| iced::widget::button::Style {
+                background: Some(iced::Background::Color(
+                    Theme::KanagawaDragon.palette().background,
+                )),
+                text_color: Theme::KanagawaDragon.palette().text,
+                ..Default::default()
+            })
+            .width(Fill).height(55)
+        ).width(Fill);
+        container(tile).style(|_| iced::widget::container::Style {
+            text_color: Some(Theme::KanagawaDragon.palette().text),
+            background: Some(iced::Background::Color(Theme::KanagawaDragon.palette().background)),
+            ..Default::default()
+        }).width(Fill).height(Fill)
     }
 }
 
@@ -175,7 +249,7 @@ pub struct Tile {
 impl Tile {
     /// A base window
     pub fn new() -> (Self, Task<Message>) {
-//        let _ = create_tray_icons();
+        //        let _ = create_tray_icons();
         let (id, open) = window::open(default_settings());
         let _ = window::run(id, |handle| {
             macos::macos_window_config(
@@ -229,7 +303,7 @@ impl Tile {
                 } else if self.query_lc == "randomvar" {
                     self.results = vec![App {
                         open_command: "".to_string(),
-                        icon_path: None,
+                        icons: None,
                         name: rand::random_range(0..100).to_string(),
                         name_lc: String::new(),
                     }];
@@ -240,7 +314,6 @@ impl Tile {
                             height: DEFAULT_WINDOW_HEIGHT + 55.,
                         },
                     );
-
                 }
 
                 let filter_vec = if self.query_lc.starts_with(&self.prev_query_lc) {
@@ -355,7 +428,10 @@ impl Tile {
                 search_results = search_results.push((result).render());
             }
 
-            Column::new().push(title_input).push(search_results).into()
+            Column::new()
+                .push(title_input)
+                .push(scrollable(search_results))
+                .into()
         } else {
             space().into()
         }
