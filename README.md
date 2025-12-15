@@ -30,6 +30,10 @@ use spotlight :) Have fun!)
 
 ## Config:
 
+> I have a high chance of gorfetting (forgetting) to update the config docs, but
+> even if I do, you will most likely be able to find my config easily
+> [here](https://github.com/unsecretised/rustcast-dotfiles)
+
 The config file should be located at: `~/.config/rustcast/config.toml` RustCast
 doesn't create the default configuration for you, but it does use its
 [default options](docs/default.toml) Here's a full list of what all you can
