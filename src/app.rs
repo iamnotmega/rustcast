@@ -3,7 +3,6 @@ use crate::config::Config;
 use crate::macos::{focus_this_app, transform_process_to_ui_element};
 use crate::{macos, utils::get_installed_apps};
 
-use arboard::Clipboard;
 use global_hotkey::{GlobalHotKeyEvent, HotKeyState};
 use iced::futures::SinkExt;
 use iced::{
@@ -20,14 +19,12 @@ use iced::{
 };
 
 use objc2::rc::Retained;
-use objc2_app_kit::{NSRunningApplication, NSWorkspace};
-use objc2_foundation::NSURL;
+use objc2_app_kit::NSRunningApplication;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 
 use std::cmp::min;
 use std::fs;
-use std::process::Command;
 use std::time::Duration;
 
 pub const WINDOW_WIDTH: f32 = 500.;
@@ -42,6 +39,22 @@ pub struct App {
 }
 
 impl App {
+    pub fn basic_apps() -> Vec<App> {
+        vec![
+            App {
+                open_command: Function::Quit,
+                icons: None,
+                name: "Quit RustCast".to_string(),
+                name_lc: "quit".to_string(),
+            },
+            App {
+                open_command: Function::OpenPrefPane,
+                icons: None,
+                name: "Open RustCast Preferences".to_string(),
+                name_lc: "settings".to_string(),
+            },
+        ]
+    }
     pub fn render(&self, show_icons: bool) -> impl Into<iced::Element<'_, Message>> {
         let mut tile = Row::new().width(Fill).height(55);
 
@@ -167,14 +180,9 @@ impl Tile {
             .flatten()
             .collect();
 
-        options.par_sort_by_key(|x| x.name.len());
         options.extend(config.shells.iter().map(|x| x.to_app()));
-        options.push(App {
-            open_command: Function::Quit,
-            icons: None,
-            name: "Quit RustCast".to_string(),
-            name_lc: "quit".to_string(),
-        });
+        options.extend(App::basic_apps());
+        options.par_sort_by_key(|x| x.name.len());
 
         (
             Self {
@@ -307,39 +315,7 @@ impl Tile {
             }
 
             Message::RunFunction(command) => {
-                match command {
-                    Function::OpenApp(path) => {
-                        NSWorkspace::new().openURL(&NSURL::fileURLWithPath(
-                            &objc2_foundation::NSString::from_str(&path),
-                        ));
-                    }
-                    Function::RunShellCommand(shell_command) => {
-                        Command::new("sh")
-                            .arg("-c")
-                            .arg(shell_command.join(" "))
-                            .status()
-                            .ok();
-                    }
-                    Function::RandomVar(var) => {
-                        Clipboard::new()
-                            .unwrap()
-                            .set_text(var.to_string())
-                            .unwrap_or(());
-                    }
-
-                    Function::GoogleSearch(query_string) => {
-                        let query_args = query_string.replace(" ", "+");
-                        let query = self.config.search_url.replace("%s", &query_args);
-                        NSWorkspace::new().openURL(
-                            &NSURL::URLWithString_relativeToURL(
-                                &objc2_foundation::NSString::from_str(&query),
-                                None,
-                            )
-                            .unwrap(),
-                        );
-                    }
-                    Function::Quit => std::process::exit(0),
-                }
+                command.execute(&self.config);
 
                 if self.config.buffer_rules.clear_on_enter {
                     window::latest()
