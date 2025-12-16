@@ -169,6 +169,12 @@ impl Tile {
 
         options.par_sort_by_key(|x| x.name.len());
         options.extend(config.shells.iter().map(|x| x.to_app()));
+        options.push(App {
+            open_command: Function::Quit,
+            icons: None,
+            name: "Quit RustCast".to_string(),
+            name_lc: "quit".to_string(),
+        });
 
         (
             Self {
@@ -304,8 +310,12 @@ impl Tile {
                             .ok();
                     }
                     Function::RandomVar(var) => {
-                        Clipboard::new().unwrap().set_text(&var.to_string()).unwrap_or(());
+                        Clipboard::new()
+                            .unwrap()
+                            .set_text(var.to_string())
+                            .unwrap_or(());
                     }
+                    Function::Quit => std::process::exit(0),
                 }
 
                 if self.config.buffer_rules.clear_on_enter {
