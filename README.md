@@ -30,7 +30,7 @@ use spotlight :) Have fun!)
 
 ### Build it youself:
 
-1. Clone the repo with `git clone https://gitub.com/unsecretised/rustcast.git`
+1. Clone the repo with `git clone https://github.com/unsecretised/rustcast.git`
 1. Install `cargo bundle` with `cargo install cargo-bundle` (Requires cargo to
    be installed)
 1. Run `cargo bundle --release` to build RustCast for your system (The App Dir
@@ -60,6 +60,7 @@ bit wonky, and will be fixed in the upcoming releases
 - [ ] Clipboard History 20/12/2025
 - [ ] Plugin Support 31/12/2025 (Partially implemented on 15/12/2025)
 - [ ] Blur / transparent background (Partially implemented on 13/12/2025)
+- [ ] Allow variables to be passed into custom shell scripts.
 - [ ] Hyperkey - Map CMD + OPT + CTRL + SHIFT to a physical key
 - [ ] Ability to pick between tabs in firefox / chromium browsers - using
       [Puppeteer](https://pptr.dev/)
