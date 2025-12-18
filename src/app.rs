@@ -170,18 +170,30 @@ pub struct Tile {
 impl Tile {
     /// A base window
     pub fn new(keybind_id: u32, config: &Config) -> (Self, Task<Message>) {
-        let (id, open) = window::open(default_settings());
+        let mut settings = default_settings();
+        #[cfg(target_os = "windows")]
+        {
+            // get normal settings and modify position
+            use crate::utils::open_on_focused_monitor;
+            use iced::window::Position::Specific;
+            let pos = open_on_focused_monitor();
+            settings.position = Specific(pos);
+        }
 
-        let open = open.discard().chain(window::run(id, |handle| {
-            #[cfg(target_os = "macos")]
-            {
-                macos::macos_window_config(
-                    &handle.window_handle().expect("Unable to get window handle"),
-                );
-                // should work now that we have a window
-                transform_process_to_ui_element();
-            };
-        }));
+        let (id, open) = window::open(settings);
+
+        #[cfg(target_os = "macos")]
+        {
+            let open = open.discard().chain(window::run(id, |handle| {
+                {
+                    macos::macos_window_config(
+                        &handle.window_handle().expect("Unable to get window handle"),
+                    );
+                    // should work now that we have a window
+                    transform_process_to_ui_element();
+                }
+            }));
+        }
 
         let store_icons = config.theme.show_icons;
         let paths;
