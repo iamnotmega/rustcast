@@ -17,18 +17,23 @@ use iced::{
 };
 
 #[cfg(target_os = "macos")]
-use crate::macos::{focus_this_app, transform_process_to_ui_element};
-#[cfg(target_os = "macos")]
-use crate::{macos, utils::get_installed_apps};
-#[cfg(target_os = "macos")]
-use objc2::rc::Retained;
-#[cfg(target_os = "macos")]
-use objc2_app_kit::NSRunningApplication;
+use {
+    crate::macos::{focus_this_app, macos_window_config, transform_process_to_ui_element},
+    objc2::rc::Retained,
+    objc2_app_kit::NSApplicationActivationOptions,
+    objc2_app_kit::NSRunningApplication,
+    objc2_app_kit::NSWorkspace,
+};
 
 #[cfg(target_os = "windows")]
-use windows::Win32::Foundation::HWND;
-#[cfg(target_os = "windows")]
-use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, SetForegroundWindow};
+use {
+    crate::windows::open_on_focused_monitor,
+    crate::windows::open_on_focused_monitor,
+    iced::window::Position::Specific,
+    iced::window::Position::Specific,
+    windows::Win32::Foundation::HWND,
+    windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, SetForegroundWindow},
+};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
@@ -170,8 +175,6 @@ impl Tile {
         #[cfg(target_os = "windows")]
         {
             // get normal settings and modify position
-            use crate::windows::open_on_focused_monitor;
-            use iced::window::Position::Specific;
             let pos = open_on_focused_monitor();
             settings.position = Specific(pos);
         }
@@ -182,7 +185,7 @@ impl Tile {
             {
                 #[cfg(target_os = "macos")]
                 {
-                    macos::macos_window_config(
+                    macos_window_config(
                         &handle.window_handle().expect("Unable to get window handle"),
                     );
                     // should work now that we have a window
@@ -313,8 +316,6 @@ impl Tile {
                         #[cfg(target_os = "windows")]
                         {
                             // get normal settings and modify position
-                            use crate::windows::open_on_focused_monitor;
-                            use iced::window::Position::Specific;
                             let pos = open_on_focused_monitor();
                             let mut settings = default_settings();
                             settings.position = Specific(pos);
@@ -482,8 +483,6 @@ impl Tile {
     pub fn capture_frontmost(&mut self) {
         #[cfg(target_os = "macos")]
         {
-            use objc2_app_kit::NSWorkspace;
-
             let ws = NSWorkspace::sharedWorkspace();
             self.frontmost = ws.frontmostApplication();
         };
@@ -498,8 +497,6 @@ impl Tile {
     pub fn restore_frontmost(&mut self) {
         #[cfg(target_os = "macos")]
         {
-            use objc2_app_kit::NSApplicationActivationOptions;
-
             if let Some(app) = self.frontmost.take() {
                 app.activateWithOptions(NSApplicationActivationOptions::ActivateIgnoringOtherApps);
             }

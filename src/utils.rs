@@ -12,9 +12,9 @@ use image::RgbaImage;
 
 use crate::{app::App, commands::Function};
 #[cfg(target_os = "macos")]
-use objc2_app_kit::NSWorkspace;
-#[cfg(target_os = "macos")]
-use objc2_foundation::NSURL;
+use {crate::macos::get_installed_macos_apps, objc2_app_kit::NSWorkspace, objc2_foundation::NSURL};
+#[cfg(target_os = "windows")]
+use {crate::windows::get_installed_windows_apps, std::process::Command};
 
 const ERR_LOG_PATH: &str = "/tmp/rustscan-err.log";
 
@@ -229,8 +229,6 @@ pub fn create_config_file_if_not_exists(
 pub fn open_application(path: &String) {
     #[cfg(target_os = "windows")]
     {
-        use std::process::Command;
-
         println!("Opening application: {}", path);
 
         Command::new("powershell")
@@ -298,11 +296,13 @@ pub fn index_dirs_from_config(apps: &mut Vec<App>) -> bool {
 }
 
 pub fn get_installed_apps(config: &Config) -> Vec<App> {
-    if cfg!(target_os = "macos") {
-        use crate::macos::get_installed_macos_apps;
+    #[cfg(target_os = "macos")]
+    {
         get_installed_macos_apps(config)
-    } else {
-        use crate::windows::get_installed_windows_apps;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
         get_installed_windows_apps()
     }
 }

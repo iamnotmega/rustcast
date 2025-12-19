@@ -4,16 +4,16 @@ use walkdir::WalkDir;
 
 use crate::app::{DEFAULT_WINDOW_HEIGHT, WINDOW_WIDTH};
 #[cfg(target_os = "windows")]
-use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
-
-#[cfg(target_os = "windows")]
-use windows::Win32::System::Com::CoTaskMemFree;
-#[cfg(target_os = "windows")]
-use windows::Win32::UI::Shell::{
-    FOLDERID_LocalAppData, FOLDERID_ProgramFiles, FOLDERID_ProgramFilesX86, KF_FLAG_DEFAULT,
-    SHGetKnownFolderPath,
+use {
+    windows::Win32::System::Com::CoTaskMemFree,
+    windows::Win32::UI::Shell::{
+        FOLDERID_LocalAppData, FOLDERID_ProgramFiles, FOLDERID_ProgramFilesX86, KF_FLAG_DEFAULT,
+        SHGetKnownFolderPath,
+    },
+    windows::Win32::UI::WindowsAndMessaging::GetCursorPos,
+    windows::core::GUID,
 };
-use windows::core::GUID;
+
 #[cfg(target_os = "windows")]
 fn get_apps_from_registry(apps: &mut Vec<App>) {
     use std::ffi::OsString;

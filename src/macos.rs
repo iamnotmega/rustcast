@@ -3,20 +3,30 @@
 use crate::app::App;
 use crate::commands::Function;
 use crate::config::Config;
+use crate::utils::index_dirs_from_config;
 use crate::utils::{handle_from_icns, log_error, log_error_and_exit};
+use std::ptr;
 #[cfg(target_os = "macos")]
-use iced::wgpu::rwh::WindowHandle;
+use {
+    iced::wgpu::rwh::RawWindowHandle,
+    iced::wgpu::rwh::WindowHandle,
+    objc2::MainThreadMarker,
+    objc2::rc::Retained,
+    objc2_app_kit::NSView,
+    objc2_app_kit::{NSApp, NSApplicationActivationPolicy},
+    objc2_app_kit::{NSFloatingWindowLevel, NSWindowCollectionBehavior},
+    objc2_application_services::{
+        TransformProcessType, kCurrentProcess, kProcessTransformToUIElementApplication,
+    },
+};
+
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use crate::utils::index_dirs_from_config;
 
 #[cfg(target_os = "macos")]
 pub fn set_activation_policy_accessory() {
-    use objc2::MainThreadMarker;
-    use objc2_app_kit::{NSApp, NSApplicationActivationPolicy};
-
     let mtm = MainThreadMarker::new().expect("must be on main thread");
     let app = NSApp(mtm);
     app.setActivationPolicy(NSApplicationActivationPolicy::Accessory);
@@ -24,10 +34,6 @@ pub fn set_activation_policy_accessory() {
 
 #[cfg(target_os = "macos")]
 pub fn macos_window_config(handle: &WindowHandle) {
-    use iced::wgpu::rwh::RawWindowHandle;
-    use objc2::rc::Retained;
-    use objc2_app_kit::NSView;
-
     match handle.as_raw() {
         RawWindowHandle::AppKit(handle) => {
             let ns_view = handle.ns_view.as_ptr();
@@ -36,7 +42,6 @@ pub fn macos_window_config(handle: &WindowHandle) {
                 .window()
                 .expect("view was not installed in a window");
 
-            use objc2_app_kit::{NSFloatingWindowLevel, NSWindowCollectionBehavior};
             ns_window.setLevel(NSFloatingWindowLevel);
 
             ns_window.setCollectionBehavior(NSWindowCollectionBehavior::CanJoinAllSpaces);
@@ -74,11 +79,6 @@ struct ProcessSerialNumber {
 /// doesn't seem to do anything if you haven't opened a window yet, so wait to call it until after that.
 #[cfg(target_os = "macos")]
 pub fn transform_process_to_ui_element() -> u32 {
-    use std::ptr;
-
-    use objc2_application_services::{
-        TransformProcessType, kCurrentProcess, kProcessTransformToUIElementApplication,
-    };
     let psn = ProcessSerialNumber {
         low: 0,
         hi: kCurrentProcess,
@@ -218,7 +218,6 @@ pub fn get_installed_macos_apps(config: &Config) -> Vec<App> {
         "/System/Applications/Utilities/".to_string(),
     ];
 
-
     let mut apps = paths
         .par_iter()
         .map(|path| get_installed_apps(path, store_icons))
@@ -227,5 +226,4 @@ pub fn get_installed_macos_apps(config: &Config) -> Vec<App> {
     index_dirs_from_config(&mut apps);
 
     apps
-
 }
