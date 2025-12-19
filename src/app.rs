@@ -229,7 +229,7 @@ impl Tile {
                 }
 
                 self.focused = true;
-                operation::focus("query")
+                Task::none()
             }
 
             Message::SearchQueryChanged(input, id) => {
