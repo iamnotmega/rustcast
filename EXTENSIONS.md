@@ -15,3 +15,7 @@ RustCast.
    - MCP Servers are used by GenAI to call functions and retrieve data.
    - Maybe if we stripped the AI from MCP Servers, they could be used for
      extensions, not just in rustcast, but in all projects.
+
+1. Using WASM:
+   - The way Zed does their extension support. Maybe I could also use that? 
+   - Their article can be found [here](https://zed.dev/blog/zed-decoded-extensions)
