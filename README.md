@@ -80,10 +80,14 @@ bit wonky, and will be fixed in the upcoming releases
 - [x] Google your query. Simply type your query, and then put a `?` at the end,
       and press enter
 
-### Not Planned:
+### Not Possible by me:
 
 - [ ] Tray Icon for quitting the app. One may ask why? Well, because I CAN'T GET
       IT TO WORK.. I've SPENT TOO LONG ON THIS
+
+## If you like rustcast, consider starring it on github :)
+
+[![Star History Chart](https://api.star-history.com/svg?repos=unsecretised/rustcast&type=date&legend=top-left)](https://www.star-history.com/#unsecretised/rustcast&type=date&legend=top-left)
 
 ## Motivations:
 
