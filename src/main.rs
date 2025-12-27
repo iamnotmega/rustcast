@@ -1,4 +1,5 @@
 mod app;
+mod calculator;
 mod commands;
 mod config;
 mod macos;

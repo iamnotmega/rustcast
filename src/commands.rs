@@ -4,7 +4,7 @@ use arboard::Clipboard;
 use objc2_app_kit::NSWorkspace;
 use objc2_foundation::NSURL;
 
-use crate::config::Config;
+use crate::{calculator::Expression, config::Config};
 
 #[derive(Debug, Clone)]
 pub enum Function {
@@ -12,6 +12,7 @@ pub enum Function {
     RunShellCommand(String, String),
     RandomVar(i32),
     GoogleSearch(String),
+    Calculate(Expression),
     OpenPrefPane,
     Quit,
 }
@@ -57,6 +58,13 @@ impl Function {
                         .unwrap(),
                     );
                 });
+            }
+
+            Function::Calculate(expr) => {
+                Clipboard::new()
+                    .unwrap()
+                    .set_text(expr.eval().to_string())
+                    .unwrap_or(());
             }
 
             Function::OpenPrefPane => {
