@@ -26,7 +26,7 @@ impl Expression {
     }
 
     pub fn from_str(s: &str) -> Option<Expression> {
-        parse_expression(&s)
+        parse_expression(s)
     }
 }
 

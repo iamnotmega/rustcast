@@ -265,16 +265,16 @@ impl Tile {
 
                 self.handle_search_query_changed();
 
-                if self.results.is_empty() {
-                    if let Some(res) = Expression::from_str(&self.query) {
-                        self.results.push(App {
-                            open_command: Function::Calculate(res),
-                            desc: RUSTCAST_DESC_NAME.to_string(),
-                            icons: None,
-                            name: res.eval().to_string(),
-                            name_lc: "".to_string(),
-                        });
-                    }
+                if self.results.is_empty()
+                    && let Some(res) = Expression::from_str(&self.query)
+                {
+                    self.results.push(App {
+                        open_command: Function::Calculate(res),
+                        desc: RUSTCAST_DESC_NAME.to_string(),
+                        icons: None,
+                        name: res.eval().to_string(),
+                        name_lc: "".to_string(),
+                    });
                 }
                 let new_length = self.results.len();
 
