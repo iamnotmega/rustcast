@@ -1,9 +1,12 @@
 mod app;
+mod calculator;
 mod clipboard;
 mod commands;
 mod config;
 mod macos;
 mod utils;
+
+use std::path::Path;
 
 use crate::{app::Tile, config::Config, utils::to_key_code};
 
@@ -21,16 +24,19 @@ fn main() -> iced::Result {
     let home = std::env::var("HOME").unwrap();
 
     let file_path = home.clone() + "/.config/rustcast/config.toml";
+    if !Path::new(&file_path).exists() {
+        std::fs::create_dir_all(home + "/.config/rustcast").unwrap();
+        std::fs::write(
+            &file_path,
+            toml::to_string(&Config::default()).unwrap_or_else(|x| x.to_string()),
+        )
+        .unwrap();
+    }
     let config: Config = match std::fs::read_to_string(&file_path) {
-        Ok(a) => toml::from_str(&a).unwrap(),
+        Ok(a) => toml::from_str(&a).unwrap_or(Config::default()),
         Err(_) => Config::default(),
     };
-    std::fs::create_dir_all(home + "/.config/rustcast").unwrap();
-    std::fs::write(
-        &file_path,
-        toml::to_string(&config).unwrap_or_else(|x| x.to_string()),
-    )
-    .unwrap();
+
     let manager = GlobalHotKeyManager::new().unwrap();
 
     let show_hide = HotKey::new(

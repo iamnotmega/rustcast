@@ -4,7 +4,7 @@
 > search bar that people can use to do many things, like opening apps,
 > calculators, quick-notes, etc.
 
-![RustCast Demo PreRelease V1](docs/rustcast-demo-with-v0_1_0.png)
+![RustCast Demo PreRelease V1](./docs/rustcast-demo-v0-2-0.png)
 
 ## Installation:
 
@@ -30,7 +30,7 @@ use spotlight :) Have fun!)
 
 ### Build it youself:
 
-1. Clone the repo with `git clone https://gitub.com/unsecretised/rustcast.git`
+1. Clone the repo with `git clone https://github.com/unsecretised/rustcast.git`
 1. Install `cargo bundle` with `cargo install cargo-bundle` (Requires cargo to
    be installed)
 1. Run `cargo bundle --release` to build RustCast for your system (The App Dir
@@ -54,16 +54,15 @@ bit wonky, and will be fixed in the upcoming releases
 
 ### Planned:
 
-- [ ] Select the options using arrow keys 13/12/2025
-- [ ] Calculator 15/12/2025
-- [ ] Popup note-taking 18/12/2025
-- [ ] Clipboard History 20/12/2025
-- [ ] Plugin Support 31/12/2025 (Partially implemented on 15/12/2025)
+- [ ] Select the options using arrow keys
+- [ ] Popup note-taking
+- [ ] Clipboard History
+- [ ] Plugin Support (Partially implemented on 15/12/2025)
 - [ ] Blur / transparent background (Partially implemented on 13/12/2025)
 - [ ] Hyperkey - Map CMD + OPT + CTRL + SHIFT to a physical key
 - [ ] Ability to pick between tabs in firefox / chromium browsers - using
       [Puppeteer](https://pptr.dev/)
-- [ ] Cross platform support - (1/2/2026)
+- [ ] Cross platform support
 
 ### Finished:
 
@@ -76,13 +75,19 @@ bit wonky, and will be fixed in the upcoming releases
 - [x] Customisable themes (13/12/2025)
   - [x] Configurable colours
 - [x] Spotify control - Ability to control spotify via the app
+- [x] Allow variables to be passed into custom shell scripts.
 - [x] Google your query. Simply type your query, and then put a `?` at the end,
       and press enter
+- [x] Calculator (27/12/2025)
 
-### Not Planned:
+### Not Possible by me:
 
 - [ ] Tray Icon for quitting the app. One may ask why? Well, because I CAN'T GET
       IT TO WORK.. I've SPENT TOO LONG ON THIS
+
+## If you like rustcast, consider starring it on github :)
+
+[![Star History Chart](https://api.star-history.com/svg?repos=unsecretised/rustcast&type=date&legend=top-left)](https://www.star-history.com/#unsecretised/rustcast&type=date&legend=top-left)
 
 ## Motivations:
 

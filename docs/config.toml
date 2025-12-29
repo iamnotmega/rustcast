@@ -28,3 +28,11 @@ background_opacity = 1.0
 blur = false
 show_icons = true
 show_scroll_bar = true
+
+# searching for `echo abcd > file.txt` will run `echo abcd > file.txt` as the shell command
+[[shells]]
+command = "echo "
+# icon_path is optional
+alias = "Variables 1" # the name that will be displayed in the results
+alias_lc = "var test" # the name used to search for it
+

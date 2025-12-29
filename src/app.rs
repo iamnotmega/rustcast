@@ -1,4 +1,5 @@
 use crate::clipboard::ClipBoardContentType;
+use crate::calculator::Expression;
 use crate::commands::Function;
 use crate::config::Config;
 use crate::macos::{focus_this_app, transform_process_to_ui_element};
@@ -26,15 +27,18 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSliceMut;
 
 use std::cmp::min;
-use std::fs;
 use std::time::Duration;
+use std::{fs, thread};
 
 pub const WINDOW_WIDTH: f32 = 500.;
 pub const DEFAULT_WINDOW_HEIGHT: f32 = 65.;
 
+pub const RUSTCAST_DESC_NAME: &str = "RustCast";
+
 #[derive(Debug, Clone)]
 pub struct App {
     pub open_command: Function,
+    pub desc: String,
     pub icons: Option<iced::widget::image::Handle>,
     pub name: String,
     pub name_lc: String,
@@ -45,12 +49,14 @@ impl App {
         vec![
             App {
                 open_command: Function::Quit,
+                desc: RUSTCAST_DESC_NAME.to_string(),
                 icons: None,
                 name: "Quit RustCast".to_string(),
                 name_lc: "quit".to_string(),
             },
             App {
                 open_command: Function::OpenPrefPane,
+                desc: RUSTCAST_DESC_NAME.to_string(),
                 icons: None,
                 name: "Open RustCast Preferences".to_string(),
                 name_lc: "settings".to_string(),
@@ -58,10 +64,10 @@ impl App {
         ]
     }
 
-    pub fn render(&self, show_icons: bool) -> impl Into<iced::Element<'_, Message>> {
+    pub fn render(&self, theme: &crate::config::Theme) -> impl Into<iced::Element<'_, Message>> {
         let mut tile = Row::new().width(Fill).height(55);
 
-        if show_icons {
+        if theme.show_icons {
             if let Some(icon) = &self.icons {
                 tile = tile
                     .push(Viewer::new(icon).height(35).width(35))
@@ -75,26 +81,30 @@ impl App {
             }
         }
 
-        tile = tile
-            .push(
-                Button::new(
-                    Text::new(self.name.clone())
-                        .height(Fill)
-                        .width(Fill)
-                        .align_y(Vertical::Center),
-                )
-                .on_press(Message::RunFunction(self.open_command.clone()))
-                .style(|_, _| iced::widget::button::Style {
-                    background: Some(iced::Background::Color(
-                        Theme::KanagawaDragon.palette().background,
-                    )),
-                    text_color: Theme::KanagawaDragon.palette().text,
-                    ..Default::default()
-                })
-                .width(Fill)
-                .height(55),
+        tile = tile.push(
+            Button::new(
+                Text::new(&self.name)
+                    .height(Fill)
+                    .width(Fill)
+                    .color(theme.text_color(1.))
+                    .align_y(Vertical::Center),
             )
+            .on_press(Message::RunFunction(self.open_command.clone()))
+            .style(|_, _| iced::widget::button::Style {
+                background: Some(iced::Background::Color(
+                    Theme::KanagawaDragon.palette().background,
+                )),
+                text_color: Theme::KanagawaDragon.palette().text,
+                ..Default::default()
+            })
+            .width(Fill)
+            .height(55),
+        );
+
+        tile = tile
+            .push(container(Text::new(&self.desc).color(theme.text_color(0.4))).padding(15))
             .width(Fill);
+
         container(tile)
             .style(|_| iced::widget::container::Style {
                 text_color: Some(Theme::KanagawaDragon.palette().text),
@@ -207,7 +217,7 @@ impl Tile {
                 frontmost: None,
                 focused: false,
                 config: config.clone(),
-                theme: config.theme.to_owned().to_iced_theme(),
+                theme: config.theme.to_owned().into(),
                 open_hotkey_id: keybind_id,
                 clipboard_content: vec![],
                 page: Page::Main,
@@ -242,6 +252,7 @@ impl Tile {
                     let rand_num = rand::random_range(0..100);
                     self.results = vec![App {
                         open_command: Function::RandomVar(rand_num),
+                        desc: "Easter egg".to_string(),
                         icons: None,
                         name: rand_num.to_string(),
                         name_lc: String::new(),
@@ -257,6 +268,7 @@ impl Tile {
                     self.results = vec![App {
                         open_command: Function::GoogleSearch(self.query.clone()),
                         icons: None,
+                        desc: "Search".to_string(),
                         name: format!("Search for: {}", self.query),
                         name_lc: String::new(),
                     }];
@@ -271,10 +283,25 @@ impl Tile {
                 }
 
                 self.handle_search_query_changed();
+
+                if self.results.is_empty()
+                    && let Some(res) = Expression::from_str(&self.query)
+                {
+                    self.results.push(App {
+                        open_command: Function::Calculate(res),
+                        desc: RUSTCAST_DESC_NAME.to_string(),
+                        icons: None,
+                        name: res.eval().to_string(),
+                        name_lc: "".to_string(),
+                    });
+                }
                 let new_length = self.results.len();
 
                 let max_elem = min(5, new_length);
+
                 if prev_size != new_length && self.page == Page::Main {
+                    thread::sleep(Duration::from_millis(30));
+                  
                     window::resize(
                         id,
                         iced::Size {
@@ -342,7 +369,7 @@ impl Tile {
             }
 
             Message::RunFunction(command) => {
-                command.execute(&self.config);
+                command.execute(&self.config, &self.query);
 
                 if self.config.buffer_rules.clear_on_enter {
                     window::latest()
@@ -404,9 +431,8 @@ impl Tile {
                     let mut search_results = Column::new();
                     for result in &self.results {
                         search_results =
-                            search_results.push(result.render(self.config.theme.show_icons));
+                            search_results.push(result.render(self.config.theme));
                     }
-
                     Column::new()
                         .push(title_input)
                         .push(scrollable(search_results))
@@ -476,13 +502,21 @@ impl Tile {
 
         let mut exact: Vec<App> = filter_vec
             .par_iter()
-            .filter(|x| x.name_lc == query)
+            .filter(|x| match &x.open_command {
+                Function::RunShellCommand(_, _) => x
+                    .name_lc
+                    .starts_with(query.split_once(" ").unwrap_or((&query, "")).0),
+                _ => x.name_lc == query,
+            })
             .cloned()
             .collect();
 
         let mut prefix: Vec<App> = filter_vec
             .par_iter()
-            .filter(|x| x.name_lc != query && x.name_lc.starts_with(&query))
+            .filter(|x| match x.open_command {
+                Function::RunShellCommand(_, _) => false,
+                _ => x.name_lc != query && x.name_lc.starts_with(&query),
+            })
             .cloned()
             .collect();
 

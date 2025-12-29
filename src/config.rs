@@ -55,23 +55,11 @@ impl Default for Theme {
     }
 }
 
-impl Theme {
-    pub fn to_iced_theme(&self) -> iced::Theme {
-        let text_color = self.text_color;
-        let bg_color = self.background_color;
+impl From<Theme> for iced::Theme {
+    fn from(value: Theme) -> Self {
         let palette = iced::theme::Palette {
-            background: iced::Color {
-                r: bg_color.0,
-                g: bg_color.1,
-                b: bg_color.2,
-                a: self.background_opacity,
-            },
-            text: iced::Color {
-                r: text_color.0,
-                g: text_color.1,
-                b: text_color.2,
-                a: 1.,
-            },
+            background: value.bg_color(),
+            text: value.text_color(1.),
             primary: iced::Color {
                 r: 0.22,
                 g: 0.55,
@@ -101,6 +89,27 @@ impl Theme {
     }
 }
 
+impl Theme {
+    pub fn text_color(&self, opacity: f32) -> iced::Color {
+        let theme = self.to_owned();
+        iced::Color {
+            r: theme.text_color.0,
+            g: theme.text_color.1,
+            b: theme.text_color.2,
+            a: opacity,
+        }
+    }
+
+    pub fn bg_color(&self) -> iced::Color {
+        iced::Color {
+            r: self.background_color.0,
+            g: self.background_color.1,
+            b: self.background_color.2,
+            a: self.background_opacity,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Buffer {
@@ -122,7 +131,7 @@ impl Default for Buffer {
 /// Alias is the text that is used to call this command / search for it
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Shelly {
-    command: Vec<String>,
+    command: String,
     icon_path: Option<String>,
     alias: String,
     alias_lc: String,
@@ -140,7 +149,11 @@ impl Shelly {
             }
         });
         App {
-            open_command: Function::RunShellCommand(self_clone.command),
+            open_command: Function::RunShellCommand(
+                self_clone.command,
+                self_clone.alias_lc.clone(),
+            ),
+            desc: "Shell Command".to_string(),
             icons: icon,
             name: self_clone.alias,
             name_lc: self_clone.alias_lc,
