@@ -4,7 +4,7 @@ use arboard::Clipboard;
 use objc2_app_kit::NSWorkspace;
 use objc2_foundation::NSURL;
 
-use crate::{clipboard::ClipBoardContentType, config::Config, calculator::Expression};
+use crate::{calculator::Expression, clipboard::ClipBoardContentType, config::Config};
 
 #[derive(Debug, Clone)]
 pub enum Function {

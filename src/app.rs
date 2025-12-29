@@ -1,5 +1,5 @@
-use crate::clipboard::ClipBoardContentType;
 use crate::calculator::Expression;
+use crate::clipboard::ClipBoardContentType;
 use crate::commands::Function;
 use crate::config::Config;
 use crate::macos::{focus_this_app, transform_process_to_ui_element};
@@ -301,7 +301,7 @@ impl Tile {
 
                 if prev_size != new_length && self.page == Page::Main {
                     thread::sleep(Duration::from_millis(30));
-                  
+
                     window::resize(
                         id,
                         iced::Size {
@@ -430,8 +430,7 @@ impl Tile {
                 Page::Main => {
                     let mut search_results = Column::new();
                     for result in &self.results {
-                        search_results =
-                            search_results.push(result.render(self.config.theme));
+                        search_results = search_results.push(result.render(&self.config.theme));
                     }
                     Column::new()
                         .push(title_input)
