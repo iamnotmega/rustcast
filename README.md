@@ -54,15 +54,15 @@ bit wonky, and will be fixed in the upcoming releases
 
 ### Planned:
 
-- [ ] Select the options using arrow keys 13/12/2025
-- [ ] Popup note-taking 18/12/2025
-- [ ] Clipboard History 20/12/2025
-- [ ] Plugin Support 31/12/2025 (Partially implemented on 15/12/2025)
+- [ ] Select the options using arrow keys
+- [ ] Popup note-taking
+- [ ] Clipboard History
+- [ ] Plugin Support (Partially implemented on 15/12/2025)
 - [ ] Blur / transparent background (Partially implemented on 13/12/2025)
 - [ ] Hyperkey - Map CMD + OPT + CTRL + SHIFT to a physical key
 - [ ] Ability to pick between tabs in firefox / chromium browsers - using
       [Puppeteer](https://pptr.dev/)
-- [ ] Cross platform support - (1/2/2026)
+- [ ] Cross platform support
 
 ### Finished:
 
