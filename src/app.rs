@@ -385,6 +385,7 @@ impl Tile {
                 self.restore_frontmost();
                 self.visible = false;
                 self.focused = false;
+                self.page = Page::Main;
                 Task::batch([window::close(a), Task::done(Message::ClearSearchResults)])
             }
             Message::ClearSearchResults => {
