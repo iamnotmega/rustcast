@@ -166,7 +166,9 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             command.execute(&tile.config, &tile.query);
 
             let return_focus_task = match &command {
-                Function::OpenApp(_) | Function::OpenPrefPane | Function::GoogleSearch(_)  => Task::none(),
+                Function::OpenApp(_) | Function::OpenPrefPane | Function::GoogleSearch(_) => {
+                    Task::none()
+                }
                 _ => Task::done(Message::ReturnFocus),
             };
 
