@@ -52,6 +52,13 @@ impl App {
                 name: "Clipboard History".to_string(),
                 name_lc: "clipboard".to_string(),
             },
+            App {
+                open_command: Function::Nothing,
+                desc: RUSTCAST_DESC_NAME.to_string(),
+                icons: None,
+                name: "RustCast Version: 0.2.7".to_string(),
+                name_lc: "version".to_string(),
+            },
         ]
     }
 
