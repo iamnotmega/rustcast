@@ -11,6 +11,7 @@ use crate::app::DEFAULT_WINDOW_HEIGHT;
 use crate::app::RUSTCAST_DESC_NAME;
 use crate::app::WINDOW_WIDTH;
 use crate::app::apps::App;
+use crate::app::apps::AppCommand;
 use crate::app::default_settings;
 use crate::calculator::Expression;
 use crate::commands::Function;
@@ -44,7 +45,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             } else if tile.query_lc == "randomvar" {
                 let rand_num = rand::random_range(0..100);
                 tile.results = vec![App {
-                    open_command: Function::RandomVar(rand_num),
+                    open_command: AppCommand::Function(Function::RandomVar(rand_num)),
                     desc: "Easter egg".to_string(),
                     icons: None,
                     name: rand_num.to_string(),
@@ -59,7 +60,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 );
             } else if tile.query_lc.ends_with("?") {
                 tile.results = vec![App {
-                    open_command: Function::GoogleSearch(tile.query.clone()),
+                    open_command: AppCommand::Function(Function::GoogleSearch(tile.query.clone())),
                     icons: None,
                     desc: "Search".to_string(),
                     name: format!("Search for: {}", tile.query),
@@ -81,7 +82,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 && let Some(res) = Expression::from_str(&tile.query)
             {
                 tile.results.push(App {
-                    open_command: Function::Calculate(res),
+                    open_command: AppCommand::Function(Function::Calculate(res)),
                     desc: RUSTCAST_DESC_NAME.to_string(),
                     icons: None,
                     name: res.eval().to_string(),
@@ -94,7 +95,9 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
 
             if tile.results
                 == vec![App {
-                    open_command: Function::Nothing,
+                    open_command: AppCommand::Message(Message::SwitchToPage(
+                        Page::ClipboardHistory,
+                    )),
                     desc: RUSTCAST_DESC_NAME.to_string(),
                     icons: None,
                     name: "Clipboard History".to_string(),
@@ -174,6 +177,11 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             } else {
                 Task::none()
             }
+        }
+
+        Message::SwitchToPage(page) => {
+            tile.page = page;
+            Task::none()
         }
 
         Message::RunFunction(command) => {

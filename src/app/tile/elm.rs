@@ -11,6 +11,7 @@ use rayon::{
     slice::ParallelSliceMut,
 };
 
+use crate::app::apps::AppCommand;
 use crate::{
     app::{Message, Page, apps::App, default_settings, tile::Tile},
     config::Config,
@@ -76,9 +77,11 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
             .on_paste(move |a| Message::SearchQueryChanged(a, wid))
             .on_submit_maybe({
                 if !tile.results.is_empty() {
-                    Some(Message::RunFunction(
-                        tile.results.first().unwrap().to_owned().open_command,
-                    ))
+                    match tile.results.first().unwrap().to_owned().open_command {
+                        AppCommand::Function(func) => Some(Message::RunFunction(func)),
+                        AppCommand::Message(msg) => Some(msg),
+                        AppCommand::Display => None,
+                    }
                 } else {
                     None
                 }
