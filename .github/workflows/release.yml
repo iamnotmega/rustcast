@@ -1,11 +1,9 @@
 name: Build macOS Release
-
 on:
   push:
     tags:
       - "v*"
   workflow_dispatch:
-
 permissions:
   contents: write
 
@@ -58,6 +56,20 @@ jobs:
       - name: Package DMG
         run: bash scripts/package-macos.sh
 
+      # Homebrew-style artifact from the built .app
+      - name: Create artifacts directory
+        run: mkdir -p artifacts
+
+      - name: Zip universal .app for Homebrew
+        # APP_BUNDLE_PATH is set by scripts/build-macos.sh
+        run: |
+          if [ -z "$APP_BUNDLE_PATH" ]; then
+            echo "APP_BUNDLE_PATH not set by build-macos.sh" >&2
+            exit 1
+          fi
+          APP_NAME=$(basename "$APP_BUNDLE_PATH")
+          zip -r "artifacts/${APP_NAME%.app}-universal-macos.app.zip" "$APP_BUNDLE_PATH"
+
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
@@ -65,21 +77,30 @@ jobs:
           path: ${{ env.DMG_PATH }}
           retention-days: 7
 
+      - name: Upload .app zip artifact (Homebrew)
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-bundles
+          path: artifacts/*.zip
+          retention-days: 7
+
   create-release:
     needs: build-macos
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: Download DMG artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: rustcast-macos-dmg
           path: artifacts
 
-      - name: Create release with DMG
+      - name: Create release
         uses: softprops/action-gh-release@v1
         with:
-          files: artifacts/**/*.dmg
+          # Include both DMG and .app zip(s)
+          files: |
+            artifacts/**/*.dmg
+            artifacts/**/*.zip
           draft: false
           prerelease: false
         env:
