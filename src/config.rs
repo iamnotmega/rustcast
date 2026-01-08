@@ -22,6 +22,7 @@ pub struct Config {
     pub theme: Theme,
     pub placeholder: String,
     pub search_url: String,
+    pub haptic_feedback: bool,
     pub shells: Vec<Shelly>,
 }
 
@@ -35,6 +36,7 @@ impl Default for Config {
             theme: Theme::default(),
             placeholder: String::from("Time to be productive!"),
             search_url: "https://google.com/search?q=%s".to_string(),
+            haptic_feedback: false,
             shells: vec![],
         }
     }

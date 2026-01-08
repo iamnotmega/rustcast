@@ -20,6 +20,8 @@ use crate::app::tile::elm::default_app_paths;
 use crate::calculator::Expression;
 use crate::commands::Function;
 use crate::config::Config;
+use crate::haptics::HapticPattern;
+use crate::haptics::perform_haptic;
 use crate::utils::get_installed_apps;
 use crate::{
     app::{Message, Page, tile::Tile},
@@ -36,6 +38,11 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
         }
 
         Message::SearchQueryChanged(input, id) => {
+            #[cfg(target_os = "macos")]
+            if tile.config.haptic_feedback {
+                perform_haptic(HapticPattern::Alignment);
+            }
+
             tile.query_lc = input.trim().to_lowercase();
             tile.query = input;
             let prev_size = tile.results.len();

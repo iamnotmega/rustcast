@@ -3,6 +3,7 @@ mod calculator;
 mod clipboard;
 mod commands;
 mod config;
+mod haptics;
 mod macos;
 mod utils;
 
