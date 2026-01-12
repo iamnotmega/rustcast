@@ -143,7 +143,9 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 tile.results.push(App {
                     open_command: AppCommand::Display,
                     desc: "Easter Egg".to_string(),
-                    icons: Some(Handle::from_path(Path::new("/Applications/Rustcast.app/Contents/Resources/lemon.png"))),
+                    icons: Some(Handle::from_path(Path::new(
+                        "/Applications/Rustcast.app/Contents/Resources/lemon.png",
+                    ))),
                     name: "Lemon".to_string(),
                     name_lc: "".to_string(),
                 });
