@@ -8,6 +8,7 @@ use iced::Task;
 use iced::widget::operation;
 use iced::window;
 use rayon::slice::ParallelSliceMut;
+use url::Url;
 
 use crate::app::DEFAULT_WINDOW_HEIGHT;
 use crate::app::RUSTCAST_DESC_NAME;
@@ -21,7 +22,6 @@ use crate::commands::Function;
 use crate::config::Config;
 
 use crate::utils::get_installed_apps;
-use crate::utils::is_valid_url;
 use crate::{
     app::{Message, Page, tile::Tile},
 };
@@ -134,7 +134,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                     name: res.eval().to_string(),
                     name_lc: "".to_string(),
                 });
-            } else if tile.results.is_empty() && is_valid_url(&tile.query) {
+            } else if let Err(_) = Url::parse(&tile.query) && tile.results.is_empty() {
                 #[cfg(target_os = "macos")]
                 tile.results.push(App {
                     open_command: AppCommand::Function(Function::OpenWebsite(tile.query.clone())),

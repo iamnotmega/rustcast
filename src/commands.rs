@@ -75,7 +75,7 @@ impl Function {
             }
 
             Function::OpenWebsite(url) => {
-                let open = if url.starts_with("http") {
+                let _ = if url.starts_with("http") {
                     url.to_owned()
                 } else {
                     format!("https://{}", url)
