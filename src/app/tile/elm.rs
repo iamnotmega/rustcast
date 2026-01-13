@@ -10,18 +10,15 @@ use iced::{Color, window};
 use iced::{Element, Task};
 use iced::{Length::Fill, widget::text_input};
 
-use rayon::{
-    iter::{IntoParallelRefIterator, ParallelIterator},
-    slice::ParallelSliceMut,
-};
+use rayon::slice::ParallelSliceMut;
 
 use crate::app::apps::AppCommand;
 use crate::config::Theme;
+use crate::utils::get_installed_apps;
 use crate::{
     app::{Message, Page, apps::App, default_settings, tile::Tile},
     config::Config,
     macos::{self, transform_process_to_ui_element},
-    utils::get_installed_apps,
 };
 
 pub fn default_app_paths() -> Vec<String> {
@@ -43,22 +40,24 @@ pub fn new(
     keybind_id: u32,
     config: &Config,
 ) -> (Tile, Task<Message>) {
-    let (id, open) = window::open(default_settings());
+    #[allow(unused_mut)]
+    let mut settings = default_settings();
+
+    #[cfg(target_os = "windows")]
+    {
+        // get normal settings and modify position
+        let pos = open_on_focused_monitor();
+        settings.position = Specific(pos);
+    }
+
+    let (id, open) = window::open(settings);
 
     let open = open.discard().chain(window::run(id, |handle| {
         macos::macos_window_config(&handle.window_handle().expect("Unable to get window handle"));
         transform_process_to_ui_element();
     }));
 
-    let store_icons = config.theme.show_icons;
-
-    let paths = default_app_paths();
-
-    let mut options: Vec<App> = paths
-        .par_iter()
-        .map(|path| get_installed_apps(path, store_icons))
-        .flatten()
-        .collect();
+    let mut options: Vec<App> = get_installed_apps(&config);
 
     options.extend(config.shells.iter().map(|x| x.to_app()));
     options.extend(App::basic_apps());

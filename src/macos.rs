@@ -1,11 +1,10 @@
 //! Macos specific logic, such as window settings, etc.
 #![allow(deprecated)]
-use crate::app::App;
+use crate::app::apps::{App, AppCommand};
 use crate::commands::Function;
 use crate::config::Config;
 use crate::utils::index_dirs_from_config;
 use crate::utils::{handle_from_icns, log_error, log_error_and_exit};
-use std::ptr;
 #[cfg(target_os = "macos")]
 use {
     iced::wgpu::rwh::RawWindowHandle,
@@ -15,9 +14,6 @@ use {
     objc2_app_kit::NSView,
     objc2_app_kit::{NSApp, NSApplicationActivationPolicy},
     objc2_app_kit::{NSFloatingWindowLevel, NSWindowCollectionBehavior},
-    objc2_application_services::{
-        TransformProcessType, kCurrentProcess, kProcessTransformToUIElementApplication,
-    },
 };
 
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -104,7 +100,7 @@ pub fn transform_process_to_ui_element() -> u32 {
     }
 }
 
-pub(crate) fn get_installed_apps(dir: impl AsRef<Path>, store_icons: bool) -> Vec<App> {
+fn get_installed_apps(dir: impl AsRef<Path>, store_icons: bool) -> Vec<App> {
     let entries: Vec<_> = fs::read_dir(dir.as_ref())
         .unwrap_or_else(|x| {
             log_error_and_exit(&x.to_string());
@@ -212,7 +208,8 @@ pub(crate) fn get_installed_apps(dir: impl AsRef<Path>, store_icons: bool) -> Ve
 
             let name = file_name.strip_suffix(".app").unwrap().to_string();
             Some(App {
-                open_command: Function::OpenApp(path_str),
+                open_command: AppCommand::Function(Function::OpenApp(path_str)),
+                desc: "Application".to_string(),
                 icons,
                 name_lc: name.to_lowercase(),
                 name,

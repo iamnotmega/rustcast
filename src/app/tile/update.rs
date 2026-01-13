@@ -9,8 +9,6 @@ use iced::Task;
 use iced::widget::image::Handle;
 use iced::widget::operation;
 use iced::window;
-use rayon::iter::IntoParallelRefIterator;
-use rayon::iter::ParallelIterator;
 use rayon::slice::ParallelSliceMut;
 
 use crate::app::DEFAULT_WINDOW_HEIGHT;
@@ -20,7 +18,6 @@ use crate::app::apps::App;
 use crate::app::apps::AppCommand;
 use crate::app::default_settings;
 use crate::app::menubar::menu_icon;
-use crate::app::tile::elm::default_app_paths;
 use crate::calculator::Expression;
 use crate::commands::Function;
 use crate::config::Config;
@@ -36,8 +33,11 @@ use crate::{
 pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
     match message {
         Message::OpenWindow => {
-            tile.capture_frontmost();
-            focus_this_app();
+            #[cfg(target_os = "macos")]
+            {
+                tile.capture_frontmost();
+                focus_this_app();
+            }
             tile.focused = true;
             tile.visible = true;
             Task::none()
@@ -132,6 +132,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                     name_lc: "".to_string(),
                 });
             } else if tile.results.is_empty() && is_valid_url(&tile.query) {
+                #[cfg(target_os = "macos")]
                 tile.results.push(App {
                     open_command: AppCommand::Function(Function::OpenWebsite(tile.query.clone())),
                     desc: "Web Browsing".to_string(),
@@ -140,6 +141,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                     name_lc: "".to_string(),
                 });
             } else if tile.results.is_empty() && tile.query_lc == "lemon" {
+                #[cfg(target_os = "macos")]
                 tile.results.push(App {
                     open_command: AppCommand::Display,
                     desc: "Easter Egg".to_string(),
@@ -199,6 +201,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
         }
 
         Message::ReloadConfig => {
+            #[cfg(target_os = "macos")]
             let new_config: Config = toml::from_str(
                 &fs::read_to_string(
                     std::env::var("HOME").unwrap_or("".to_owned())
@@ -208,11 +211,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             )
             .unwrap();
 
-            let mut new_options: Vec<App> = default_app_paths()
-                .par_iter()
-                .map(|path| get_installed_apps(path, new_config.theme.show_icons))
-                .flatten()
-                .collect();
+            let mut new_options: Vec<App> = get_installed_apps(&new_config);
 
             new_options.extend(new_config.shells.iter().map(|x| x.to_app()));
             new_options.extend(App::basic_apps());
@@ -229,12 +228,27 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             if hk_id == tile.open_hotkey_id {
                 tile.visible = !tile.visible;
                 if tile.visible {
-                    Task::chain(
-                        window::open(default_settings())
-                            .1
-                            .map(|_| Message::OpenWindow),
-                        operation::focus("query"),
-                    )
+                    #[cfg(target_os = "windows")]
+                    {
+                        // get normal settings and modify position
+                        let pos = open_on_focused_monitor();
+                        let mut settings = default_settings();
+                        settings.position = Specific(pos);
+                        Task::chain(
+                            window::open(settings).1.map(|_| Message::OpenWindow),
+                            operation::focus("query"),
+                        )
+                    }
+
+                    #[cfg(target_os = "macos")]
+                    {
+                        Task::chain(
+                            window::open(default_settings())
+                                .1
+                                .map(|_| Message::OpenWindow),
+                            operation::focus("query"),
+                        )
+                    }
                 } else {
                     let clear_search_query = if tile.config.buffer_rules.clear_on_hide {
                         Task::done(Message::ClearSearchQuery)

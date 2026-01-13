@@ -3,7 +3,10 @@ mod calculator;
 mod clipboard;
 mod commands;
 mod config;
+
+#[cfg(target_os = "macos")]
 mod haptics;
+
 mod macos;
 mod utils;
 mod windows;
@@ -11,10 +14,7 @@ mod windows;
 // import from utils
 use crate::utils::{create_config_file_if_not_exists, get_config_file_path, read_config_file};
 
-use crate::{app::Tile, utils::to_key_code};
-use std::path::Path;
-
-use crate::{app::tile::Tile, config::Config};
+use crate::app::tile::Tile;
 
 use global_hotkey::{
     GlobalHotKeyManager,
@@ -30,20 +30,6 @@ fn main() -> iced::Result {
     let file_path = get_config_file_path();
     let config = read_config_file(&file_path).unwrap();
     create_config_file_if_not_exists(&file_path, &config).unwrap();
-
-    let file_path = home.clone() + "/.config/rustcast/config.toml";
-    if !Path::new(&file_path).exists() {
-        std::fs::create_dir_all(home + "/.config/rustcast").unwrap();
-        std::fs::write(
-            &file_path,
-            toml::to_string(&Config::default()).unwrap_or_else(|x| x.to_string()),
-        )
-        .unwrap();
-    }
-    let config: Config = match std::fs::read_to_string(&file_path) {
-        Ok(a) => toml::from_str(&a).unwrap_or(Config::default()),
-        Err(_) => Config::default(),
-    };
 
     let manager = GlobalHotKeyManager::new().unwrap();
 

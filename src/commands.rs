@@ -1,6 +1,8 @@
 //! This handles all the different commands that rustcast can perform, such as opening apps,
 //! copying to clipboard, etc.
-use std::{process::Command, thread};
+use std::process::Command;
+#[cfg(target_os = "macos")]
+use std::thread;
 
 use arboard::Clipboard;
 #[cfg(target_os = "macos")]
@@ -8,7 +10,7 @@ use objc2_app_kit::NSWorkspace;
 #[cfg(target_os = "macos")]
 use objc2_foundation::NSURL;
 
-use crate::utils::{get_config_file_path, open_application};
+use crate::utils::open_application;
 use crate::{calculator::Expression, clipboard::ClipBoardContentType, config::Config};
 
 /// The different functions that rustcast can perform
@@ -63,17 +65,13 @@ impl Function {
                 }
 
                 #[cfg(target_os = "macos")]
-                {
-                    NSWorkspace::new().openURL(
-                        &NSURL::URLWithString_relativeToURL(
-                            &objc2_foundation::NSString::from_str(query),
-                        &NSURL::URLWithString_relativeToURL(
-                            &objc2_foundation::NSString::from_str(&query),
-                            None,
-                        )
-                        .unwrap(),
-                    );
-                });
+                NSWorkspace::new().openURL(
+                    &NSURL::URLWithString_relativeToURL(
+                        &objc2_foundation::NSString::from_str(query),
+                        None,
+                    )
+                    .unwrap(),
+                );
             }
 
             Function::OpenWebsite(url) => {
@@ -82,7 +80,7 @@ impl Function {
                 } else {
                     format!("https://{}", url)
                 };
-                #[cfg(os= "macos")]
+                #[cfg(target_os = "macos")]
                 thread::spawn(move || {
                     NSWorkspace::new().openURL(
                         &NSURL::URLWithString_relativeToURL(
@@ -111,7 +109,7 @@ impl Function {
             },
 
             Function::OpenPrefPane => {
-                #[cfg(os="macos")]
+                #[cfg(target_os = "macos")]
                 thread::spawn(move || {
                     NSWorkspace::new().openURL(&NSURL::fileURLWithPath(
                         &objc2_foundation::NSString::from_str(

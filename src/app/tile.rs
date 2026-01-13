@@ -1,6 +1,14 @@
 //! This module handles the logic for the tile, AKA rustcast's main window
-mod elm;
-mod update;
+pub mod elm;
+pub mod update;
+
+#[cfg(target_os = "windows")]
+use {
+    crate::windows::open_on_focused_monitor,
+    iced::window::Position::Specific,
+    windows::Win32::Foundation::HWND,
+    windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, SetForegroundWindow},
+};
 
 use crate::app::apps::{App, AppCommand};
 use crate::app::tile::elm::default_app_paths;
@@ -23,7 +31,9 @@ use iced::{
     stream,
 };
 
+#[cfg(target_os = "macos")]
 use objc2::rc::Retained;
+#[cfg(target_os = "macos")]
 use objc2_app_kit::NSRunningApplication;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use tray_icon::TrayIcon;
@@ -66,7 +76,10 @@ pub struct Tile {
     options: Vec<App>,
     visible: bool,
     focused: bool,
+    #[cfg(target_os = "macos")]
     frontmost: Option<Retained<NSRunningApplication>>,
+    #[cfg(target_os = "windows")]
+    frontmost: Option<HWND>,
     config: Config,
     open_hotkey_id: u32,
     hotkey: (Option<Modifiers>, Code),
@@ -197,19 +210,39 @@ impl Tile {
 
     /// Gets the frontmost application to focus later.
     pub fn capture_frontmost(&mut self) {
-        use objc2_app_kit::NSWorkspace;
+        #[cfg(target_os = "macos")]
+        {
+            use objc2_app_kit::NSWorkspace;
 
-        let ws = NSWorkspace::sharedWorkspace();
-        self.frontmost = ws.frontmostApplication();
+            let ws = NSWorkspace::sharedWorkspace();
+            self.frontmost = ws.frontmostApplication();
+        };
+
+        #[cfg(target_os = "windows")]
+        {
+            self.frontmost = Some(unsafe { GetForegroundWindow() });
+        }
     }
 
     /// Restores the frontmost application.
     #[allow(deprecated)]
     pub fn restore_frontmost(&mut self) {
-        use objc2_app_kit::NSApplicationActivationOptions;
+        #[cfg(target_os = "macos")]
+        {
+            if let Some(app) = self.frontmost.take() {
+                use objc2_app_kit::NSApplicationActivationOptions;
 
-        if let Some(app) = self.frontmost.take() {
-            app.activateWithOptions(NSApplicationActivationOptions::ActivateIgnoringOtherApps);
+                app.activateWithOptions(NSApplicationActivationOptions::ActivateIgnoringOtherApps);
+            }
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            if let Some(handle) = self.frontmost {
+                unsafe {
+                    let _ = SetForegroundWindow(handle);
+                }
+            }
         }
     }
 }

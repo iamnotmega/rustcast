@@ -1,8 +1,3 @@
-use crate::utils::index_dirs_from_config;
-use crate::{app::App, commands::Function};
-use walkdir::WalkDir;
-
-use crate::app::{DEFAULT_WINDOW_HEIGHT, WINDOW_WIDTH};
 #[cfg(target_os = "windows")]
 use {
     windows::Win32::System::Com::CoTaskMemFree,
