@@ -21,6 +21,8 @@ use crate::calculator::Expression;
 use crate::commands::Function;
 use crate::config::Config;
 
+#[cfg(target_os = "windows")]
+use crate::utils::get_config_installation_dir;
 use crate::utils::get_installed_apps;
 use crate::{
     app::{Message, Page, tile::Tile},
@@ -217,8 +219,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             #[cfg(target_os = "windows")]
             let new_config: Config = toml::from_str(
                 &fs::read_to_string(
-                    std::env::var("LOCALAPPDATA").unwrap_or("".to_owned())
-                        + "/rustcast/config.toml",
+                    get_config_installation_dir() + "/rustcast/config.toml",
                 )
                 .unwrap_or("".to_owned()),
             )
