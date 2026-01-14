@@ -1,15 +1,14 @@
 //! This handles the update logic for the tile (AKA rustcast's main window)
 use std::cmp::min;
 use std::fs;
-use std::path::Path;
 use std::time::Duration;
 
 use global_hotkey::hotkey::HotKey;
 use iced::Task;
-use iced::widget::image::Handle;
 use iced::widget::operation;
 use iced::window;
 use rayon::slice::ParallelSliceMut;
+use url::Url;
 
 use crate::app::DEFAULT_WINDOW_HEIGHT;
 use crate::app::RUSTCAST_DESC_NAME;
@@ -21,13 +20,19 @@ use crate::app::menubar::menu_icon;
 use crate::calculator::Expression;
 use crate::commands::Function;
 use crate::config::Config;
-use crate::haptics::HapticPattern;
-use crate::haptics::perform_haptic;
+
+#[cfg(target_os = "windows")]
+use crate::utils::get_config_installation_dir;
 use crate::utils::get_installed_apps;
-use crate::utils::is_valid_url;
 use crate::{
     app::{Message, Page, tile::Tile},
+};
+
+#[cfg(target_os = "macos")]
+use crate::{
     macos::focus_this_app,
+    haptics::HapticPattern,
+    haptics::perform_haptic
 };
 
 pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
@@ -131,7 +136,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                     name: res.eval().to_string(),
                     name_lc: "".to_string(),
                 });
-            } else if tile.results.is_empty() && is_valid_url(&tile.query) {
+            } else if let Err(_) = Url::parse(&tile.query) && tile.results.is_empty() {
                 #[cfg(target_os = "macos")]
                 tile.results.push(App {
                     open_command: AppCommand::Function(Function::OpenWebsite(tile.query.clone())),
@@ -211,6 +216,15 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             )
             .unwrap();
 
+            #[cfg(target_os = "windows")]
+            let new_config: Config = toml::from_str(
+                &fs::read_to_string(
+                    get_config_installation_dir() + "/rustcast/config.toml",
+                )
+                .unwrap_or("".to_owned()),
+            )
+            .unwrap();
+
             let mut new_options: Vec<App> = get_installed_apps(&new_config);
 
             new_options.extend(new_config.shells.iter().map(|x| x.to_app()));
@@ -231,9 +245,13 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                     #[cfg(target_os = "windows")]
                     {
                         // get normal settings and modify position
+
+                        use iced::window::Position;
+                        use crate::cross_platform::windows::open_on_focused_monitor;
+                        
                         let pos = open_on_focused_monitor();
                         let mut settings = default_settings();
-                        settings.position = Specific(pos);
+                        settings.position = Position::Specific(pos);
                         Task::chain(
                             window::open(settings).1.map(|_| Message::OpenWindow),
                             operation::focus("query"),

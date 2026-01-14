@@ -3,13 +3,9 @@ mod calculator;
 mod clipboard;
 mod commands;
 mod config;
-
-#[cfg(target_os = "macos")]
-mod haptics;
-
-mod macos;
 mod utils;
-mod windows;
+
+mod cross_platform;
 
 // import from utils
 use crate::utils::{create_config_file_if_not_exists, get_config_file_path, read_config_file};
@@ -45,6 +41,8 @@ fn main() -> iced::Result {
     manager
         .register_all(&hotkeys)
         .expect("Unable to register hotkey");
+
+    println!("Starting");
 
     iced::daemon(
         move || Tile::new((modifier, key), show_hide.id(), &config),

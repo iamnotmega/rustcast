@@ -13,12 +13,17 @@ use image::RgbaImage;
 
 #[cfg(target_os = "macos")]
 use {
-    crate::macos::get_installed_macos_apps, objc2_app_kit::NSWorkspace, objc2_foundation::NSURL,
+    crate::cross_platform::macos::get_installed_macos_apps, 
+    objc2_app_kit::NSWorkspace, 
+    objc2_foundation::NSURL,
     std::os::unix::fs::PermissionsExt,
 };
 
 #[cfg(target_os = "windows")]
-use {crate::windows::get_installed_windows_apps, std::process::Command};
+use {
+    crate::cross_platform::windows::get_installed_windows_apps, 
+    std::process::Command
+};
 
 use crate::{
     app::apps::{App, AppCommand},
@@ -83,19 +88,6 @@ pub fn open_url(url: &str) {
                 .unwrap(),
         );
     });
-}
-
-pub fn is_valid_url(s: &str) -> bool {
-    s.ends_with(".com")
-        || s.ends_with(".net")
-        || s.ends_with(".org")
-        || s.ends_with(".edu")
-        || s.ends_with(".gov")
-        || s.ends_with(".io")
-        || s.ends_with(".co")
-        || s.ends_with(".me")
-        || s.ends_with(".app")
-        || s.ends_with(".dev")
 }
 
 pub fn get_config_installation_dir() -> String {
