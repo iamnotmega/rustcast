@@ -120,11 +120,12 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
         let results = match tile.page {
             Page::Main => {
                 let mut search_results = Column::new();
-                let mut i = 0_u32;
-                for result in &tile.results {
-                    search_results =
-                        search_results.push(result.render(&tile.config.theme, i, tile.focus_id));
-                    i += 1;
+                for (i, result) in tile.results.iter().enumerate() {
+                    search_results = search_results.push(result.render(
+                        &tile.config.theme,
+                        i as u32,
+                        tile.focus_id,
+                    ));
                 }
                 search_results
             }

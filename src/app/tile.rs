@@ -146,10 +146,10 @@ impl Tile {
                             return Some(Message::KeyPressed(65598));
                         }
                         keyboard::Key::Named(Named::ArrowUp) => {
-                            return Some(Message::ChangeFocus(ArrowKey::ArrowUp));
+                            return Some(Message::ChangeFocus(ArrowKey::Up));
                         }
                         keyboard::Key::Named(Named::ArrowDown) => {
-                            return Some(Message::ChangeFocus(ArrowKey::ArrowDown));
+                            return Some(Message::ChangeFocus(ArrowKey::Down));
                         }
                         keyboard::Key::Character(chr) => {
                             if modifiers.command() && chr.to_string().to_lowercase() == "r" {
@@ -196,7 +196,8 @@ impl Tile {
     /// function to handle the search query changed event.
     pub fn handle_search_query_changed(&mut self) {
         let query = self.query_lc.clone();
-        let results: Vec<App> = (&self.options)
+        let results: Vec<App> = self
+            .options
             .search_prefix(&query)
             .map(|x| x.to_owned())
             .collect();

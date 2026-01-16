@@ -191,7 +191,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                             height: ((max_elem * 55) + DEFAULT_WINDOW_HEIGHT as usize) as f32,
                         },
                     ),
-                    Task::done(Message::ChangeFocus(ArrowKey::ArrowLeft)),
+                    Task::done(Message::ChangeFocus(ArrowKey::Left)),
                 ])
             } else if tile.page == Page::ClipboardHistory {
                 let element_count = min(tile.clipboard_content.len(), 5);
@@ -217,8 +217,8 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             let u32_len = tile.results.len() as u32;
             if u32_len > 0 {
                 match key {
-                    ArrowKey::ArrowDown => tile.focus_id = (tile.focus_id + 1) % u32_len,
-                    ArrowKey::ArrowUp => tile.focus_id = (tile.focus_id + u32_len - 1) % u32_len,
+                    ArrowKey::Down => tile.focus_id = (tile.focus_id + 1) % u32_len,
+                    ArrowKey::Up => tile.focus_id = (tile.focus_id + u32_len - 1) % u32_len,
                     _ => {}
                 }
 
