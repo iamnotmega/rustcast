@@ -1,7 +1,7 @@
 //! This module handles the logic for the new and view functions according to the elm
 //! architecture. If the subscription function becomes too large, it should be moved to this file
 
-use global_hotkey::hotkey::{Code, Modifiers};
+use global_hotkey::hotkey::HotKey;
 use iced::border::Radius;
 use iced::widget::scrollable::{Direction, Scrollbar};
 use iced::widget::text::LineHeight;
@@ -44,18 +44,13 @@ pub fn default_app_paths() -> Vec<String> {
 }
 
 /// Initialise the base window
-pub fn new(
-    hotkey: (Option<Modifiers>, Code),
-    keybind_id: u32,
-    config: &Config,
-) -> (Tile, Task<Message>) {
+pub fn new(hotkey: HotKey, config: &Config) -> (Tile, Task<Message>) {
     #[allow(unused_mut)]
     let mut settings = default_settings();
-
+    
+    // get normal settings and modify position
     #[cfg(target_os = "windows")]
     {
-        // get normal settings and modify position
-
         use iced::window::Position;
 
         use crate::cross_platform::windows::open_on_focused_monitor;
@@ -91,7 +86,6 @@ pub fn new(
             focused: false,
             config: config.clone(),
             theme: config.theme.to_owned().into(),
-            open_hotkey_id: keybind_id,
             clipboard_content: vec![],
             tray_icon: None,
             sender: None,
@@ -125,7 +119,12 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
             .padding(20);
 
         let scrollbar_direction = if tile.config.theme.show_scroll_bar {
-            Direction::Vertical(Scrollbar::new().width(2).scroller_width(2))
+            Direction::Vertical(
+                Scrollbar::new()
+                    .width(2)
+                    .scroller_width(2)
+                    .anchor(Anchor::Start),
+            )
         } else {
             Direction::Vertical(Scrollbar::hidden())
         };

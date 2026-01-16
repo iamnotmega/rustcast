@@ -17,7 +17,7 @@ use crate::config::Config;
 use crate::utils::open_settings;
 
 use arboard::Clipboard;
-use global_hotkey::hotkey::{Code, Modifiers};
+use global_hotkey::hotkey::HotKey;
 use global_hotkey::{GlobalHotKeyEvent, HotKeyState};
 
 use iced::futures::SinkExt;
@@ -80,8 +80,8 @@ pub struct Tile {
     #[cfg(target_os = "windows")]
     frontmost: Option<HWND>,
     config: Config,
-    open_hotkey_id: u32,
-    hotkey: (Option<Modifiers>, Code),
+    /// The opening hotkey
+    hotkey: HotKey,
     clipboard_content: Vec<ClipBoardContentType>,
     tray_icon: Option<TrayIcon>,
     sender: Option<ExtSender>,
@@ -90,12 +90,8 @@ pub struct Tile {
 
 impl Tile {
     /// Initialise the base window
-    pub fn new(
-        hotkey: (Option<Modifiers>, Code),
-        keybind_id: u32,
-        config: &Config,
-    ) -> (Self, Task<Message>) {
-        elm::new(hotkey, keybind_id, config)
+    pub fn new(hotkey: HotKey, config: &Config) -> (Self, Task<Message>) {
+        elm::new(hotkey, config)
     }
 
     /// This handles the iced's updates, which have all the variants of [Message]

@@ -12,10 +12,7 @@ use crate::utils::{create_config_file_if_not_exists, get_config_file_path, read_
 
 use crate::app::tile::Tile;
 
-use global_hotkey::{
-    GlobalHotKeyManager,
-    hotkey::{HotKey, Modifiers},
-};
+use global_hotkey::GlobalHotKeyManager;
 
 fn main() -> iced::Result {
     #[cfg(target_os = "macos")]
@@ -27,11 +24,7 @@ fn main() -> iced::Result {
 
     let manager = GlobalHotKeyManager::new().unwrap();
 
-    let modifier = Modifiers::from_name(&config.toggle_mod);
-
-    let key = config.toggle_key;
-
-    let show_hide = HotKey::new(modifier, key);
+    let show_hide = config.toggle_hotkey.parse().unwrap();
 
     // Hotkeys are stored as a vec so that hyperkey support can be added later
     let hotkeys = vec![show_hide];
@@ -41,7 +34,7 @@ fn main() -> iced::Result {
         .expect("Unable to register hotkey");
 
     iced::daemon(
-        move || Tile::new((modifier, key), show_hide.id(), &config),
+        move || Tile::new(show_hide, &config),
         Tile::update,
         Tile::view,
     )

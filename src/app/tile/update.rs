@@ -6,7 +6,6 @@ use std::path::Path;
 use std::thread;
 use std::time::Duration;
 
-use global_hotkey::hotkey::HotKey;
 use iced::Task;
 #[cfg(target_os = "macos")]
 use iced::widget::image::Handle;
@@ -63,9 +62,8 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
 
         Message::SetSender(sender) => {
             tile.sender = Some(sender.clone());
-            let hotkey_id = HotKey::new(tile.hotkey.0, tile.hotkey.1).id();
             if tile.config.show_trayicon {
-                tile.tray_icon = Some(menu_icon(tile.hotkey, hotkey_id, sender));
+                tile.tray_icon = Some(menu_icon(tile.hotkey, sender));
             }
             Task::none()
         }
@@ -194,13 +192,16 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             if prev_size != new_length && tile.page == Page::Main {
                 std::thread::sleep(Duration::from_millis(30));
 
-                window::resize(
-                    id,
-                    iced::Size {
-                        width: WINDOW_WIDTH,
-                        height: ((max_elem * 55) + DEFAULT_WINDOW_HEIGHT as usize) as f32,
-                    },
-                )
+                Task::batch([
+                    window::resize(
+                        id,
+                        iced::Size {
+                            width: WINDOW_WIDTH,
+                            height: ((max_elem * 55) + DEFAULT_WINDOW_HEIGHT as usize) as f32,
+                        },
+                    ),
+                    Task::done(Message::ChangeFocus(ArrowKey::ArrowLeft)),
+                ])
             } else if tile.page == Page::ClipboardHistory {
                 let element_count = min(tile.clipboard_content.len(), 5);
                 window::resize(
@@ -282,7 +283,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
         }
 
         Message::KeyPressed(hk_id) => {
-            if hk_id == tile.open_hotkey_id {
+            if hk_id == tile.hotkey.id {
                 tile.visible = !tile.visible;
                 if tile.visible {
                     #[cfg(target_os = "windows")]
