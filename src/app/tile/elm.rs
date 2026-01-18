@@ -6,7 +6,7 @@ use iced::border::Radius;
 use iced::widget::scrollable::{Anchor, Direction, Scrollbar};
 use iced::widget::text::LineHeight;
 use iced::widget::{Column, Scrollable, container, space};
-use iced::{Color, window};
+use iced::window;
 use iced::{Element, Task};
 use iced::{Length::Fill, widget::text_input};
 
@@ -15,9 +15,9 @@ use rayon::{
     slice::ParallelSliceMut,
 };
 
-use crate::app::apps::AppCommand;
 use crate::app::tile::AppIndex;
 use crate::config::Theme;
+use crate::styles::rustcast_text_input_style;
 use crate::{
     app::{Message, Page, apps::App, default_settings, tile::Tile},
     config::Config,
@@ -93,8 +93,8 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
             .on_submit(Message::OpenFocused)
             .id("query")
             .width(Fill)
-            .line_height(LineHeight::Relative(1.5))
-            .style(|_, _| text_input_style(&tile.config.theme))
+            .line_height(LineHeight::Relative(1.75))
+            .style(rustcast_text_input_style(&tile.theme))
             .padding(20);
 
         let scrollbar_direction = if tile.config.theme.show_scroll_bar {
@@ -109,7 +109,7 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
         };
         let results = match tile.page {
             Page::Main => {
-                let mut search_results = Column::new();
+                let mut search_results = Column::new().spacing(5);
                 for (i, result) in tile.results.iter().enumerate() {
                     search_results = search_results.push(result.render(
                         &tile.config.theme,
@@ -128,21 +128,16 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
                 clipboard_history
             }
         };
+
         let scrollable = Scrollable::with_direction(results, scrollbar_direction).id("results");
-        let contents = Column::new().push(title_input).push(scrollable);
+        let contents = Column::new()
+            .push(title_input)
+            .push(scrollable)
+            .spacing(if tile.results.is_empty() { 0 } else { 5 });
 
         container(contents)
-            .style(|_| iced::widget::container::Style {
-                background: None,
-                text_color: None,
-                border: iced::Border {
-                    color: tile.config.theme.text_color(1.),
-                    width: 1.,
-                    radius: Radius::new(0),
-                },
-                ..Default::default()
-            })
-            .padding(0)
+            .style(|_| panel_style(&tile.config.theme))
+            .padding(10)
             .clip(true)
             .into()
     } else {
@@ -150,27 +145,15 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
     }
 }
 
-fn text_input_style(theme: &Theme) -> iced::widget::text_input::Style {
-    text_input::Style {
-        background: iced::Background::Color(Color::TRANSPARENT),
+fn panel_style(theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(iced::Background::Color(theme.bg_color())),
+        text_color: None,
         border: iced::Border {
-            color: iced::Color {
-                r: 0.95,
-                g: 0.95,
-                b: 0.95,
-                a: 0.7,
-            },
-            width: 0.5,
-            radius: iced::border::Radius {
-                top_left: 0.,
-                top_right: 0.,
-                bottom_right: 0.,
-                bottom_left: 0.,
-            },
+            color: theme.text_color(1.),
+            width: 1.0,
+            radius: Radius::new(14.0),
         },
-        icon: theme.text_color(0.),
-        placeholder: theme.text_color(0.7),
-        value: theme.text_color(1.),
-        selection: theme.text_color(0.2),
+        ..Default::default()
     }
 }

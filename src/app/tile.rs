@@ -84,16 +84,16 @@ impl AppIndex {
 /// - Page ([`Page`]) the current page of the window (main or clipboard history)
 #[derive(Clone)]
 pub struct Tile {
-    theme: iced::Theme,
-    focus_id: u32,
-    query: String,
+    pub theme: iced::Theme,
+    pub focus_id: u32,
+    pub query: String,
     query_lc: String,
     results: Vec<App>,
     options: AppIndex,
     visible: bool,
     focused: bool,
     frontmost: Option<Retained<NSRunningApplication>>,
-    config: Config,
+    pub config: Config,
     /// The opening hotkey
     hotkey: HotKey,
     clipboard_content: Vec<ClipBoardContentType>,
