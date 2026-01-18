@@ -65,7 +65,10 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
 
         Message::EscKeyPressed(id) => {
             if tile.query_lc.is_empty() {
-                Task::done(Message::HideWindow(id))
+                Task::batch([
+                    Task::done(Message::HideWindow(id)),
+                    Task::done(Message::ReturnFocus),
+                ])
             } else {
                 Task::batch(vec![
                     Task::done(Message::ClearSearchQuery),
