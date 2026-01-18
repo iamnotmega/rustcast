@@ -177,6 +177,7 @@ pub(crate) fn get_installed_apps(dir: impl AsRef<Path>, store_icons: bool) -> Ve
         .collect()
 }
 
+/// Open the settings file with the system default editor
 pub fn open_settings() {
     thread::spawn(move || {
         NSWorkspace::new().openURL(&NSURL::fileURLWithPath(
@@ -188,6 +189,7 @@ pub fn open_settings() {
     });
 }
 
+/// Open a provided URL (Platform specific)
 pub fn open_url(url: &str) {
     let url = url.to_owned();
     thread::spawn(move || {
@@ -198,6 +200,7 @@ pub fn open_url(url: &str) {
     });
 }
 
+/// Check if the provided string is a valid url
 pub fn is_valid_url(s: &str) -> bool {
     s.ends_with(".com")
         || s.ends_with(".net")

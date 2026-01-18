@@ -23,6 +23,7 @@ pub enum Page {
     ClipboardHistory,
 }
 
+/// The types of arrow keys
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum ArrowKey {
@@ -32,6 +33,7 @@ pub enum ArrowKey {
     Right,
 }
 
+/// The ways the cursor can move when a key is pressed
 #[derive(Debug, Clone)]
 pub enum Move {
     Back,

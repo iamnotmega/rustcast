@@ -41,12 +41,14 @@ impl Drop for ExtSender {
     fn drop(&mut self) {}
 }
 
+/// All the indexed apps that rustcast can search for
 #[derive(Clone, Debug)]
 struct AppIndex {
     by_name: BTreeMap<String, App>,
 }
 
 impl AppIndex {
+    /// Search for an element in the index that starts with the provided prefix
     fn search_prefix<'a>(&'a self, prefix: &'a str) -> impl Iterator<Item = &'a App> + 'a {
         self.by_name
             .range(prefix.to_string()..) // start at prefix
@@ -54,6 +56,7 @@ impl AppIndex {
             .map(|(_, v)| v)
     }
 
+    /// Factory function for creating
     pub fn from_apps(options: Vec<App>) -> Self {
         let mut bmap = BTreeMap::new();
         for app in options {
