@@ -70,6 +70,13 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                 Task::batch(vec![
                     Task::done(Message::ClearSearchQuery),
                     Task::done(Message::ClearSearchResults),
+                    window::resize(
+                        id,
+                        iced::Size {
+                            width: WINDOW_WIDTH,
+                            height: DEFAULT_WINDOW_HEIGHT,
+                        },
+                    ),
                 ])
             }
         }
