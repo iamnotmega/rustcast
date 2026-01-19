@@ -1,5 +1,5 @@
-use iced::Theme;
 use iced::border::Radius;
+use iced::widget::text_input::Status;
 use iced::widget::{button, container};
 use iced::{Background, Border, Color, widget::text_input};
 
@@ -19,33 +19,28 @@ pub fn with_alpha(mut c: Color, a: f32) -> Color {
     c
 }
 
-pub fn rustcast_text_input_style(
-    theme: &Theme,
-) -> impl Fn(&Theme, text_input::Status) -> text_input::Style + '_ {
-    move |_, status| {
-        let palette = theme.palette();
-        let base_bg = palette.background;
-        let surface = with_alpha(tint(base_bg, 0.06), 1.0);
+pub fn rustcast_text_input_style(theme: &ConfigTheme, status: Status) -> text_input::Style {
+    let base_bg = theme.bg_color();
+    let surface = with_alpha(tint(base_bg, 0.06), 1.0);
 
-        let (border_color, border_width) = match status {
-            text_input::Status::Focused { .. } => (palette.text, 1.2),
-            text_input::Status::Hovered => (palette.text, 1.0),
-            text_input::Status::Active => (palette.text, 0.9),
-            text_input::Status::Disabled => (palette.text, 0.8),
-        };
+    let (border_color, border_width) = match status {
+        text_input::Status::Focused { .. } => (theme.text_color(0.20), 1.2),
+        text_input::Status::Hovered => (theme.text_color(0.30), 1.0),
+        text_input::Status::Active => (theme.text_color(0.20), 0.9),
+        text_input::Status::Disabled => (theme.text_color(0.10), 0.8),
+    };
 
-        text_input::Style {
-            background: Background::Color(surface),
-            border: Border {
-                color: border_color,
-                width: border_width,
-                radius: Radius::new(5),
-            },
-            icon: palette.text,
-            placeholder: palette.text,
-            value: palette.text,
-            selection: palette.text,
-        }
+    text_input::Style {
+        background: Background::Color(surface),
+        border: Border {
+            color: border_color,
+            width: border_width,
+            radius: Radius::new(5.0),
+        },
+        icon: theme.text_color(0.7),
+        placeholder: theme.text_color(0.45),
+        value: theme.text_color(1.0),
+        selection: theme.text_color(0.2),
     }
 }
 

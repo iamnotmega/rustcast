@@ -93,7 +93,7 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
             .id("query")
             .width(Fill)
             .line_height(LineHeight::Relative(1.75))
-            .style(rustcast_text_input_style(&tile.theme))
+            .style(|_, status| rustcast_text_input_style(&tile.config.theme, status))
             .padding(20);
 
         let scrollbar_direction = if tile.config.theme.show_scroll_bar {
