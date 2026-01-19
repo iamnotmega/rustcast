@@ -137,12 +137,10 @@ impl Tile {
     /// - Window focus changes
     pub fn subscription(&self) -> Subscription<Message> {
         let keyboard = event::listen_with(|event, _, id| match event {
-            event::Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => match key {
-                keyboard::Key::Named(keyboard::key::Named::Escape) => {
-                    Some(Message::EscKeyPressed(id))
-                }
-                _ => None,
-            },
+            event::Event::Keyboard(keyboard::Event::KeyPressed {
+                key: keyboard::Key::Named(keyboard::key::Named::Escape),
+                ..
+            }) => Some(Message::EscKeyPressed(id)),
             _ => None,
         });
         Subscription::batch([

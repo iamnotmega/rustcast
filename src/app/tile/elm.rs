@@ -6,7 +6,7 @@ use iced::border::Radius;
 use iced::widget::scrollable::{Anchor, Direction, Scrollbar};
 use iced::widget::text::LineHeight;
 use iced::widget::{Column, Scrollable, container, space};
-use iced::window;
+use iced::{Color, window};
 use iced::{Element, Task};
 use iced::{Length::Fill, widget::text_input};
 
@@ -107,51 +107,58 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
         } else {
             Direction::Vertical(Scrollbar::hidden())
         };
-        let results = match tile.page {
-            Page::Main => {
-                let mut search_results = Column::new().spacing(5);
-                for (i, result) in tile.results.iter().enumerate() {
-                    search_results = search_results.push(result.render(
-                        &tile.config.theme,
-                        i as u32,
-                        tile.focus_id,
-                    ));
-                }
-                search_results
-            }
-            Page::ClipboardHistory => {
-                let mut clipboard_history = Column::new();
-                for result in &tile.clipboard_content {
-                    clipboard_history = clipboard_history
-                        .push(result.render_clipboard_item(tile.config.theme.clone()));
-                }
-                clipboard_history
-            }
+
+        let results = if tile.page == Page::ClipboardHistory {
+            Column::from_iter(
+                tile.clipboard_content
+                    .iter()
+                    .enumerate()
+                    .map(|(i, content)| {
+                        content
+                            .to_app()
+                            .render(tile.config.theme.clone(), i as u32, tile.focus_id)
+                    }),
+            )
+        } else {
+            Column::from_iter(tile.results.iter().enumerate().map(|(i, app)| {
+                app.clone()
+                    .render(tile.config.theme.clone(), i as u32, tile.focus_id)
+            }))
+            .spacing(if tile.results.is_empty() { 0 } else { 1 })
         };
 
         let scrollable = Scrollable::with_direction(results, scrollbar_direction).id("results");
-        let contents = Column::new()
-            .push(title_input)
-            .push(scrollable)
-            .spacing(if tile.results.is_empty() { 0 } else { 5 });
+        let contents = container(Column::new().push(title_input).push(scrollable).spacing(1))
+            .style(|_| container::Style {
+                text_color: None,
+                background: None,
+                border: iced::Border {
+                    color: Color::WHITE,
+                    width: 1.,
+                    radius: Radius::new(14),
+                },
+                ..Default::default()
+            });
 
-        container(contents)
-            .style(|_| panel_style(&tile.config.theme))
-            .padding(10)
-            .clip(true)
-            .into()
+        container(
+            container(contents)
+                .style(|_| contents_style(&tile.config.theme))
+                .clip(true),
+        )
+        .style(|_| contents_style(&tile.config.theme))
+        .into()
     } else {
         space().into()
     }
 }
 
-fn panel_style(theme: &Theme) -> container::Style {
+fn contents_style(theme: &Theme) -> container::Style {
     container::Style {
-        background: Some(iced::Background::Color(theme.bg_color())),
+        background: None,
         text_color: None,
         border: iced::Border {
-            color: theme.text_color(1.),
-            width: 1.0,
+            color: theme.text_color(0.7),
+            width: 0.0,
             radius: Radius::new(14.0),
         },
         ..Default::default()

@@ -106,25 +106,25 @@ impl App {
     }
 
     /// This renders the app into an iced element, allowing it to be displayed in the search results
-    pub fn render<'a>(
-        &'a self,
-        theme: &'a crate::config::Theme,
+    pub fn render(
+        self,
+        theme: crate::config::Theme,
         id_num: u32,
         focussed_id: u32,
-    ) -> impl Into<iced::Element<'a, Message>> {
+    ) -> iced::Element<'static, Message> {
         let focused = focussed_id == id_num;
 
         // Title + subtitle (Raycast style)
         let text_block = iced::widget::Column::new()
             .spacing(2)
             .push(
-                Text::new(&self.name)
+                Text::new(self.name)
                     .font(theme.font())
                     .size(16)
                     .color(theme.text_color(1.0)),
             )
             .push(
-                Text::new(&self.desc)
+                Text::new(self.desc)
                     .font(theme.font())
                     .size(13)
                     .color(theme.text_color(0.55)),
@@ -133,7 +133,7 @@ impl App {
         let mut row = Row::new()
             .align_y(Alignment::Center)
             .width(Fill)
-            .spacing(0)
+            .spacing(10)
             .height(50);
 
         if theme.show_icons
@@ -153,26 +153,30 @@ impl App {
             AppCommand::Display => None,
         };
 
+        let theme_clone = theme.clone();
+
         let content = Button::new(row)
             .on_press_maybe(msg)
-            .style(|_, _| result_button_style(theme))
+            .style(move |_, _| result_button_style(&theme_clone))
             .width(Fill)
             .padding(0)
             .height(50);
 
         container(content)
             .id(format!("result-{}", id_num))
-            .style(move |_| result_row_container_style(theme, focused))
+            .style(move |_| result_row_container_style(&theme, focused))
             .padding(8)
             .width(Fill)
+            .into()
     }
 }
 
 fn result_button_style(theme: &Theme) -> button::Style {
-    let mut s = button::Style::default();
-    s.text_color = theme.text_color(1.0);
-    s.background = None;
-    s
+    button::Style {
+        text_color: theme.text_color(1.),
+        background: Some(Background::Color(theme.bg_color())),
+        ..Default::default()
+    }
 }
 
 fn result_row_container_style(tile: &Theme, focused: bool) -> container::Style {

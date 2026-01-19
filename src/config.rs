@@ -51,7 +51,6 @@ pub struct Theme {
     pub show_icons: bool,
     pub show_scroll_bar: bool,
     pub font: Option<String>,
-    pub indie_style: bool,
 }
 
 impl Default for Theme {
@@ -64,7 +63,6 @@ impl Default for Theme {
             show_icons: true,
             show_scroll_bar: true,
             font: None,
-            indie_style: false,
         }
     }
 }
