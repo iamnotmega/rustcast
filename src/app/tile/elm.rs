@@ -126,7 +126,7 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
         };
 
         let scrollable = Scrollable::with_direction(results, scrollbar_direction).id("results");
-        let contents = container(Column::new().push(title_input).push(scrollable).spacing(1))
+        let contents = container(Column::new().push(title_input).push(scrollable).spacing(0))
             .style(|_| container::Style {
                 text_color: None,
                 background: None,

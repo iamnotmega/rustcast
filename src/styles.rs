@@ -24,10 +24,10 @@ pub fn rustcast_text_input_style(theme: &ConfigTheme, status: Status) -> text_in
     let surface = with_alpha(tint(base_bg, 0.06), 1.0);
 
     let (border_color, border_width) = match status {
-        text_input::Status::Focused { .. } => (theme.text_color(0.20), 1.2),
-        text_input::Status::Hovered => (theme.text_color(0.30), 1.0),
-        text_input::Status::Active => (theme.text_color(0.20), 0.9),
-        text_input::Status::Disabled => (theme.text_color(0.10), 0.8),
+        text_input::Status::Focused { .. } => (theme.text_color(0.20), 1.),
+        text_input::Status::Hovered => (theme.text_color(0.20), 1.),
+        text_input::Status::Active => (theme.text_color(0.20), 1.),
+        text_input::Status::Disabled => (theme.text_color(0.20), 1.),
     };
 
     text_input::Style {
