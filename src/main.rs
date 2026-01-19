@@ -20,6 +20,7 @@ use global_hotkey::{
 };
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::Layer;
+use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
 
 fn main() -> iced::Result {

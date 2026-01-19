@@ -1,6 +1,5 @@
 use {
-    crate::app::apps::App,
-    windows::{
+    crate::app::apps::App, tracing::Level, windows::{
         Win32::{
             System::Com::CoTaskMemFree,
             UI::{
@@ -12,7 +11,7 @@ use {
             },
         },
         core::GUID,
-    },
+    }
 };
 
 fn get_apps_from_registry(apps: &mut Vec<App>) {
@@ -30,6 +29,9 @@ fn get_apps_from_registry(apps: &mut Vec<App>) {
     // src: https://stackoverflow.com/questions/2864984/how-to-programatically-get-the-list-of-installed-programs/2892848#2892848
     registers.iter().for_each(|reg| {
         reg.enum_keys().for_each(|key| {
+            // Not debug only just because it doesn't run too often
+            tracing::trace!("App added [reg]: {:?}", key);
+
             // https://learn.microsoft.com/en-us/windows/win32/msi/uninstall-registry-key
             let name = key.unwrap();
             let key = reg.open_subkey(&name).unwrap();
@@ -82,6 +84,10 @@ fn get_apps_from_known_folder(apps: &mut Vec<App>) {
         {
             use crate::{app::apps::AppCommand, commands::Function};
 
+            // only in debug builds since it's chonky and this is run a *lot*
+            #[cfg(debug_assertions)]
+            tracing::trace!("App added [kfolder]: {}", entry.path().display());
+
             apps.push(App {
                 open_command: AppCommand::Function(Function::OpenApp(
                     entry.path().to_string_lossy().to_string(),
@@ -129,9 +135,18 @@ pub fn get_installed_windows_apps() -> Vec<App> {
     use crate::utils::index_dirs_from_config;
 
     let mut apps = Vec::new();
+
+    tracing::debug!("Getting apps from registry");
     get_apps_from_registry(&mut apps);
+
+    tracing::debug!("Getting apps from known folder");
     get_apps_from_known_folder(&mut apps);
+
+    tracing::debug!("Getting apps from config");
     index_dirs_from_config(&mut apps);
+
+    tracing::debug!("Apps loaded ({} total count)", apps.len());
+
     apps
 }
 

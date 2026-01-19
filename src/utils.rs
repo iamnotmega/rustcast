@@ -218,6 +218,8 @@ pub fn index_dirs_from_config(apps: &mut Vec<App>) -> bool {
 
 /// Use this to get installed apps
 pub fn get_installed_apps(config: &Config) -> Vec<App> {
+    tracing::debug!("Indexing installed apps");   
+
     #[cfg(target_os = "macos")]
     {
         get_installed_macos_apps(config)
@@ -225,7 +227,6 @@ pub fn get_installed_apps(config: &Config) -> Vec<App> {
 
     #[cfg(target_os = "windows")]
     {
-        
         get_installed_windows_apps()
     }
 }
