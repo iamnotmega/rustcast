@@ -76,7 +76,7 @@ pub fn get_config_installation_dir() -> String {
     }
 }
 
-pub fn get_log_dir() -> String {
+pub fn get_temp_dir() -> String {
     if cfg!(target_os = "windows") {
         std::env::var("TEMP").unwrap() + "/rustcast"
     } else {
@@ -225,6 +225,7 @@ pub fn get_installed_apps(config: &Config) -> Vec<App> {
 
     #[cfg(target_os = "windows")]
     {
+        
         get_installed_windows_apps()
     }
 }

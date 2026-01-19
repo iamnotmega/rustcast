@@ -10,7 +10,7 @@ mod cross_platform;
 use std::fs::File;
 
 // import from utils
-use crate::utils::{create_config_file_if_not_exists, get_config_file_path, get_config_installation_dir, get_log_dir, read_config_file};
+use crate::utils::{create_config_file_if_not_exists, get_config_file_path, get_config_installation_dir, get_temp_dir, read_config_file};
 
 use crate::app::tile::Tile;
 
@@ -33,7 +33,7 @@ fn main() -> iced::Result {
     create_config_file_if_not_exists(&file_path, &config).unwrap();
 
     {
-        let log_path = get_log_dir() + "/log.log";
+        let log_path = get_temp_dir() + "/log.log";
 
         create_config_file_if_not_exists(&log_path, &config).unwrap();
         
