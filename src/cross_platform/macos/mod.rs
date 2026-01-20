@@ -111,7 +111,7 @@ fn get_installed_apps(dir: impl AsRef<Path>, store_icons: bool) -> Vec<App> {
         .into_par_iter()
         .filter_map(|x| {
             let file_type = x.file_type().unwrap_or_else(|e| {
-                tracing::error!("{}", e.to_string());
+                tracing::error!("Failed to get file type: {}", e.to_string());
                 exit(-1)
             });
             if !file_type.is_dir() {
