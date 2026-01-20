@@ -82,6 +82,8 @@ fn get_apps_from_known_folder(apps: &mut Vec<App>) {
         {
             use crate::{app::apps::AppCommand, commands::Function};
 
+
+
             apps.push(App {
                 open_command: AppCommand::Function(Function::OpenApp(
                     entry.path().to_string_lossy().to_string(),
@@ -109,7 +111,7 @@ fn get_known_paths() -> Vec<String> {
     let paths = vec![
         get_windows_path(&FOLDERID_ProgramFiles).unwrap_or_default(),
         get_windows_path(&FOLDERID_ProgramFilesX86).unwrap_or_default(),
-        get_windows_path(&FOLDERID_LocalAppData).unwrap_or_default(),
+        String::from(get_windows_path(&FOLDERID_LocalAppData).unwrap_or_default() + "\\Programs\\"),
     ];
     paths
 }
@@ -128,10 +130,18 @@ fn get_windows_path(folder_id: &GUID) -> Option<String> {
 pub fn get_installed_windows_apps() -> Vec<App> {
     use crate::utils::index_dirs_from_config;
 
+    use std::time::Instant;
+    let start = Instant::now();
+
     let mut apps = Vec::new();
     get_apps_from_registry(&mut apps);
     get_apps_from_known_folder(&mut apps);
     index_dirs_from_config(&mut apps);
+
+    let elapsed = start.elapsed();
+
+    println!("Took {:?}", elapsed);
+
     apps
 }
 
