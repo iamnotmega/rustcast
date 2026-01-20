@@ -100,7 +100,7 @@ fn get_apps_from_known_folder(apps: &mut Vec<App>) {
                         name: name.clone(),
                         name_lc: name.to_lowercase(),
                         icons: None,
-                        desc: "TODO: Implement".to_string(),
+                        desc: "Application".to_string(),
                     }
                 })
                 .collect::<Vec<_>>()
