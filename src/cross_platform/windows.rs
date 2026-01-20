@@ -77,34 +77,32 @@ fn get_apps_from_known_folder() -> impl ParallelIterator<Item = App> {
     use crate::{app::apps::AppCommand, commands::Function};
     use walkdir::WalkDir;
 
-    paths
-        .into_par_iter()
-        .flat_map(|path| {
-            WalkDir::new(path)
-                .follow_links(false)
-                .into_iter()
-                .par_bridge()
-                .filter_map(|e| e.ok())
-                .filter(|e| e.path().extension().is_some_and(|ext| ext == "exe"))
-                .map(|entry| {
-                    let path = entry.path();
-                    let file_name = path.file_name().unwrap().to_string_lossy();
-                    let name = file_name.replace(".exe", "");
+    paths.into_par_iter().flat_map(|path| {
+        WalkDir::new(path)
+            .follow_links(false)
+            .into_iter()
+            .par_bridge()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().extension().is_some_and(|ext| ext == "exe"))
+            .map(|entry| {
+                let path = entry.path();
+                let file_name = path.file_name().unwrap().to_string_lossy();
+                let name = file_name.replace(".exe", "");
 
-                    #[cfg(debug_assertions)]
-                    tracing::trace!("Executable loaded [kfolder]: {:?}", path.to_str());
+                #[cfg(debug_assertions)]
+                tracing::trace!("Executable loaded [kfolder]: {:?}", path.to_str());
 
-                    App {
-                        open_command: AppCommand::Function(Function::OpenApp(
-                            path.to_string_lossy().to_string(),
-                        )),
-                        name: name.clone(),
-                        name_lc: name.to_lowercase(),
-                        icons: None,
-                        desc: "Application".to_string(),
-                    }
-                })
-        })
+                App {
+                    open_command: AppCommand::Function(Function::OpenApp(
+                        path.to_string_lossy().to_string(),
+                    )),
+                    name: name.clone(),
+                    name_lc: name.to_lowercase(),
+                    icons: None,
+                    desc: "Application".to_string(),
+                }
+            })
+    })
 }
 fn get_known_paths() -> Vec<String> {
     let paths = vec![
