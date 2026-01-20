@@ -1,7 +1,7 @@
 use {
-    crate::app::apps::App,
     tracing::Level,
     windows::{
+    crate::app::apps::App, rayon::prelude::*, std::path::PathBuf, windows::{
         Win32::{
             System::Com::CoTaskMemFree,
             UI::{
@@ -13,7 +13,8 @@ use {
             },
         },
         core::GUID,
-    },
+    }
+
 };
 
 fn get_apps_from_registry(apps: &mut Vec<App>) {
@@ -74,11 +75,12 @@ fn get_apps_from_registry(apps: &mut Vec<App>) {
 }
 fn get_apps_from_known_folder(apps: &mut Vec<App>) {
     let paths = get_known_paths();
+    use walkdir::WalkDir;
+    use crate::{app::apps::AppCommand, commands::Function};
 
-    for path in paths {
-        use walkdir::WalkDir;
 
-        for entry in WalkDir::new(path)
+    let found_apps: Vec<App> = paths.par_iter().flat_map(|path| {
+        WalkDir::new(path)
             .follow_links(false)
             .into_iter()
             .filter_map(|e| e.ok())
@@ -117,7 +119,7 @@ fn get_known_paths() -> Vec<String> {
     let paths = vec![
         get_windows_path(&FOLDERID_ProgramFiles).unwrap_or_default(),
         get_windows_path(&FOLDERID_ProgramFilesX86).unwrap_or_default(),
-        get_windows_path(&FOLDERID_LocalAppData).unwrap_or_default(),
+        String::from(get_windows_path(&FOLDERID_LocalAppData).unwrap_or_default() + "\\Programs\\"),
     ];
     paths
 }
@@ -135,6 +137,9 @@ fn get_windows_path(folder_id: &GUID) -> Option<String> {
 }
 pub fn get_installed_windows_apps() -> Vec<App> {
     use crate::utils::index_dirs_from_config;
+
+    use std::time::Instant;
+    let start = Instant::now();
 
     let mut apps = Vec::new();
 
