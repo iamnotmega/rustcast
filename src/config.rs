@@ -17,12 +17,15 @@ pub struct Config {
     pub toggle_hotkey: String,
     pub buffer_rules: Buffer,
     pub theme: Theme,
+
     pub placeholder: String,
     pub search_url: String,
     pub haptic_feedback: bool,
     pub show_trayicon: bool,
     pub shells: Vec<Shelly>,
     pub index_dirs: Vec<String>,
+
+    pub index_skip_globs: Vec<String>
 }
 
 impl Default for Config {
@@ -38,6 +41,7 @@ impl Default for Config {
             show_trayicon: true,
             shells: vec![],
             index_dirs: vec![],
+            index_skip_globs: RegexSet::empty()
         }
     }
 }
