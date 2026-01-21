@@ -25,7 +25,8 @@ pub struct Config {
     pub shells: Vec<Shelly>,
     pub index_dirs: Vec<String>,
 
-    pub index_skip_globs: Vec<String>
+    pub index_exclude_patterns: Vec<String>,
+    pub index_include_patterns: Vec<String>
 }
 
 impl Default for Config {
@@ -41,7 +42,8 @@ impl Default for Config {
             show_trayicon: true,
             shells: vec![],
             index_dirs: vec![],
-            index_skip_globs: vec![]
+            index_exclude_patterns: vec![],
+            index_include_patterns: vec![]
         }
     }
 }

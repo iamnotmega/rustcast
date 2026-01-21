@@ -75,7 +75,13 @@ fn get_apps_from_registry(apps: &mut Vec<App>) {
 }
 
 /// Recursively loads apps from a set of folders.
-fn get_apps_from_known_folder(exclude_patterns: &[glob::Pattern]) -> impl ParallelIterator<Item = App> {
+/// 
+/// [`exclude_patterns`] is a set of glob patterns to include, while [`include_patterns`] is a set of
+/// patterns to include ignoring [`exclude_patterns`].
+fn get_apps_from_known_folder(
+    exclude_patterns: &[glob::Pattern], 
+    include_patterns: &[glob::Pattern]
+) -> impl ParallelIterator<Item = App> {
     let paths = get_known_paths();
     use crate::{app::apps::AppCommand, commands::Function};
     use walkdir::WalkDir;
@@ -90,7 +96,10 @@ fn get_apps_from_known_folder(exclude_patterns: &[glob::Pattern]) -> impl Parall
             .filter_map(|entry| {
                 let path = entry.path();
 
-                if exclude_patterns.iter().any(|x| x.matches_path(path)) {
+                if 
+                    exclude_patterns.iter().any(|x| x.matches_path(path)) && 
+                    !include_patterns.iter().any(|x| x.matches_path(path))
+                {
                     #[cfg(debug_assertions)]
                     tracing::trace!("Executable skipped [kfolder]: {:?}", path.to_str());
 
@@ -140,8 +149,11 @@ fn get_windows_path(folder_id: &GUID) -> Option<PathBuf> {
     }
 }
 
-/** Loads all installed windows apps */
-pub fn get_installed_windows_apps(exclude_patterns: &[glob::Pattern]) -> Vec<App> {
+/// Gets windows apps
+/// 
+/// When searching known folders, [`exclude_patterns`] is a set of glob patterns to include, while
+/// [`include_patterns`] is a set of patterns to include ignoring [`exclude_patterns`].
+pub fn get_installed_windows_apps(exclude_patterns: &[glob::Pattern], include_patterns: &[glob::Pattern]) -> Vec<App> {
     use crate::utils::index_dirs_from_config;
 
     let mut apps = Vec::new();
@@ -150,7 +162,7 @@ pub fn get_installed_windows_apps(exclude_patterns: &[glob::Pattern]) -> Vec<App
     get_apps_from_registry(&mut apps);
 
     tracing::debug!("Getting apps from known folder");
-    apps.par_extend(get_apps_from_known_folder(exclude_patterns));
+    apps.par_extend(get_apps_from_known_folder(exclude_patterns, include_patterns));
 
     tracing::debug!("Getting apps from config");
     index_dirs_from_config(&mut apps);

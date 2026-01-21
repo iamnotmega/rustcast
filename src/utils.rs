@@ -197,14 +197,20 @@ pub fn get_installed_apps(config: &Config) -> Vec<App> {
 
     #[cfg(target_os = "windows")]
     {
-        let glob_patterns: Vec<_> = config.index_skip_globs
+        let exclude_patterns: Vec<_> = config.index_exclude_patterns
             .iter()
             .map(|x| glob::Pattern::new(x).unwrap()) // TODO: remove unwrap
             .collect();
 
-        tracing::debug!("Exclude patterns: {:?}", &glob_patterns);
+        let include_patterns: Vec<_> = config.index_include_patterns
+            .iter()
+            .map(|x| glob::Pattern::new(x).unwrap()) // TODO: remove unwrap
+            .collect();
 
-        get_installed_windows_apps(&glob_patterns)
+        tracing::debug!("Exclude patterns: {:?}", &exclude_patterns);
+        tracing::debug!("Include patterns: {:?}", &include_patterns);
+
+        get_installed_windows_apps(&exclude_patterns, &include_patterns)
     }
 }
 
