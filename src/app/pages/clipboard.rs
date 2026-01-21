@@ -1,5 +1,5 @@
 use iced::widget::{
-    Scrollable,
+    Scrollable, scrollable,
     scrollable::{Direction, Scrollbar},
 };
 
@@ -15,13 +15,13 @@ pub fn clipboard_view(
     let theme_clone_2 = theme.clone();
     Row::from_vec(vec![
         container(
-            Column::from_iter(
-                clipboard_content
-                    .iter()
-                    .enumerate()
-                    .map(|(i, content)| content.to_app().render(theme.clone(), i as u32, focus_id)),
+            scrollable(
+                Column::from_iter(clipboard_content.iter().enumerate().map(|(i, content)| {
+                    content.to_app().render(theme.clone(), i as u32, focus_id)
+                }))
+                .width(WINDOW_WIDTH / 3.),
             )
-            .width(WINDOW_WIDTH / 3.),
+            .id("results"),
         )
         .height(7 * 55)
         .style(move |_| result_row_container_style(&theme_clone_2, false))

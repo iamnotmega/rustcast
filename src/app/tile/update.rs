@@ -136,6 +136,11 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             };
 
             let direction = if tile.focus_id < old_focus_id { -1 } else { 1 };
+            let quantity = match tile.page {
+                Page::Main => 66.5,
+                Page::ClipboardHistory => 50.,
+                Page::EmojiSearch => 5.,
+            };
 
             Task::batch([
                 task,
@@ -143,7 +148,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                     "results",
                     AbsoluteOffset {
                         x: None,
-                        y: Some((tile.focus_id as f32 * 5.) * direction as f32),
+                        y: Some((tile.focus_id as f32 * quantity) * direction as f32),
                     },
                 ),
             ])
