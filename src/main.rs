@@ -15,10 +15,7 @@ use std::fs::File;
 // import from utils
 use crate::utils::{create_config_file_if_not_exists, get_config_file_path, read_config_file};
 
-use crate::{
-    app::tile::{self, Tile},
-    config::Config,
-};
+use crate::app::tile::{self, Tile};
 
 use global_hotkey::GlobalHotKeyManager;
 use tracing::level_filters::LevelFilter;
