@@ -124,7 +124,7 @@ fn get_apps_from_known_folder(
     })
 }
 
-/** Returns the set of known paths */
+/// Returns the set of known paths
 fn get_known_paths() -> Vec<PathBuf> {
     let paths = vec![
         get_windows_path(&FOLDERID_ProgramFiles).unwrap_or_default(),
@@ -136,7 +136,7 @@ fn get_known_paths() -> Vec<PathBuf> {
     paths
 }
 
-/** Wrapper around `SHGetKnownFolderPath` to get paths to known folders */
+/// Wrapper around `SHGetKnownFolderPath` to get paths to known folders
 fn get_windows_path(folder_id: &GUID) -> Option<PathBuf> {
     unsafe {
         let folder = SHGetKnownFolderPath(folder_id, KF_FLAG_DEFAULT, None);

@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+
 use std::path::Path;
 
 #[cfg(target_os = "macos")]
