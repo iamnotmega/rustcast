@@ -43,7 +43,8 @@ use crate::{
 };
 
 pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
-    tracing::debug!("Handling update (message: {:?})", message);
+    tracing::trace!("Handling update (message: {:?})", message);
+    
     match message {
         Message::OpenWindow => {
             #[cfg(target_os = "macos")]
