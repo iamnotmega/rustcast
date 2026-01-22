@@ -12,6 +12,8 @@ use iced::{Length::Fill, widget::text_input};
 
 use rayon::slice::ParallelSliceMut;
 
+#[cfg(target_os = "windows")]
+use crate::app;
 use crate::app::tile::AppIndex;
 use crate::styles::{contents_style, rustcast_text_input_style};
 use crate::utils::get_installed_apps;
@@ -63,7 +65,7 @@ pub fn new(hotkey: HotKey, config: &Config) -> (Tile, Task<Message>) {
     let (id, open) = window::open(settings);
 
     #[cfg(target_os = "windows")]
-    let open: Task<iced::window::Id> = open.discard();
+    let open: Task<app::Message> = open.discard();
 
     #[cfg(target_os = "macos")]
     let open = open.discard().chain(window::run(id, |handle| {

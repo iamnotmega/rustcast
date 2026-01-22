@@ -1,3 +1,5 @@
+use std::path::Path;
+
 #[cfg(target_os = "macos")]
 pub mod macos;
 
@@ -12,4 +14,12 @@ pub fn open_url(url: &str) {
 pub fn open_settings() {
     #[cfg(target_os = "macos")]
     macos::open_settings()
+}
+
+pub fn get_img_handle(path: &Path) -> Option<iced::widget::image::Handle>{
+    #[cfg(target_os = "macos")]
+    return macos::handle_from_icns(path);
+
+    #[cfg(target_os = "windows")]
+    return Some(iced::widget::image::Handle::from_path(path));
 }

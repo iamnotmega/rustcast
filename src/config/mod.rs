@@ -1,14 +1,16 @@
 //! This is the config file type definitions for rustcast
-use std::{path::Path, sync::Arc};
+use std::{path::{Path, PathBuf}, sync::Arc};
 
 use iced::{Font, font::Family, theme::Custom, widget::image::Handle};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     app::apps::{App, AppCommand},
-    commands::Function,
-    utils::handle_from_icns,
+    commands::Function, cross_platform::get_img_handle
 };
+
+#[cfg(target_os = "macos")]
+use crate::utils::handle_from_icns;
 
 mod patterns;
 
@@ -188,11 +190,7 @@ impl Shelly {
         let self_clone = self.clone();
         let icon = self_clone.icon_path.and_then(|x| {
             let x = x.replace("~", &std::env::var("HOME").unwrap());
-            if x.ends_with(".icns") {
-                handle_from_icns(Path::new(&x))
-            } else {
-                Some(Handle::from_path(Path::new(&x)))
-            }
+            get_img_handle(&PathBuf::from(x))
         });
         App {
             open_command: AppCommand::Function(Function::RunShellCommand(
