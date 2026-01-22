@@ -8,6 +8,7 @@ use std::{
 
 #[cfg(target_os = "macos")]
 use icns::IconFamily;
+use tracing::instrument;
 
 #[cfg(target_os = "macos")]
 use {
@@ -150,20 +151,39 @@ pub fn get_installed_apps(config: &Config) -> Vec<App> {
 
     #[cfg(target_os = "macos")]
     {
-        get_installed_macos_apps(config)
+        let start = time::Instant::now();
+        
+        let res = get_installed_macos_apps(config);
+
+        let end = time::Instant::now();
+
+
+        tracing::info!("Finished indexing apps (t = {}s)", (end - start).as_secs_f32());
+
+
+        res
     }
 
     #[cfg(target_os = "windows")]
     {
+        use std::time;
         use crate::cross_platform::windows::app_finding::get_installed_windows_apps;
 
         tracing::debug!("Exclude patterns: {:?}", &config.index_exclude_patterns);
         tracing::debug!("Include patterns: {:?}", &config.index_include_patterns);
 
-        get_installed_windows_apps(
+        let start = time::Instant::now();
+
+        let res = get_installed_windows_apps(
             &config.index_exclude_patterns,
             &config.index_include_patterns,
-        )
+        );
+
+        let end = time::Instant::now();
+
+        tracing::info!("Finished indexing apps (t = {}s)", (end - start).as_secs_f32());
+
+        res
     }
 }
 

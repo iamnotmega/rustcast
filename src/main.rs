@@ -101,14 +101,12 @@ fn main() -> iced::Result {
         tracing::error!("{}", e.to_string());
     }
 
-    tracing::info!("Starting.");
-
     iced::daemon(
         move || tile::elm::new(show_hide, &config),
         tile::update::handle_update,
         tile::elm::view,
     )
-    .subscription(Tile::subscription)
-    .theme(Tile::theme)
-    .run()
+        .subscription(Tile::subscription)
+        .theme(Tile::theme)
+        .run()
 }
