@@ -81,7 +81,7 @@ pub fn new(hotkey: HotKey, config: &Config) -> (Tile, Task<Message>) {
     }
 
     // Still try to load the rest
-    let mut options = options.unwrap_or(Vec::new());
+    let mut options = options.unwrap_or_default();
 
     options.extend(config.shells.iter().map(|x| x.to_app()));
     options.extend(App::basic_apps());

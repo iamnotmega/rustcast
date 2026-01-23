@@ -336,7 +336,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             )
             .unwrap();
 
-            match index_installed_apps(&new_config){
+            match index_installed_apps(&new_config) {
                 Ok(mut new_options) => {
                     new_options.extend(new_config.shells.iter().map(|x| x.to_app()));
                     new_options.extend(App::basic_apps());

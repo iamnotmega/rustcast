@@ -1,7 +1,6 @@
 use {
     crate::app::apps::App,
-    rayon::prelude::*,
-    std::path::{Path, PathBuf},
+    std::path::PathBuf,
     windows::{
         Win32::{
             System::Com::CoTaskMemFree,

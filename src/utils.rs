@@ -1,6 +1,5 @@
 //! This has all the utility functions that rustcast uses
 use std::{
-    fs::{self},
     io,
     path::{Path, PathBuf},
     thread,
@@ -19,10 +18,7 @@ use {
 #[cfg(target_os = "windows")]
 use std::process::Command;
 
-use crate::{
-    app::apps::{App, AppCommand},
-    commands::Function,
-};
+use crate::app::apps::App;
 
 pub fn get_config_installation_dir() -> PathBuf {
     if cfg!(target_os = "windows") {
@@ -161,20 +157,26 @@ pub fn index_installed_apps(config: &Config) -> anyhow::Result<Vec<App>> {
         let mut reg_apps = Vec::new();
         get_apps_from_registry(&mut reg_apps);
 
-        let res = config.index_dirs
-                .par_iter()
-                .chain(get_known_paths().par_iter())
-                .flat_map(|x| search_dir(
-                    x, 
-                    &config.index_exclude_patterns, 
-                    &config.index_exclude_patterns, 
-                    3
-                ))
-                .chain(reg_apps.into_par_iter())
-                .collect();
-        
+        let res = config
+            .index_dirs
+            .par_iter()
+            .chain(get_known_paths().par_iter())
+            .flat_map(|x| {
+                search_dir(
+                    x,
+                    &config.index_exclude_patterns,
+                    &config.index_exclude_patterns,
+                    3,
+                )
+            })
+            .chain(reg_apps.into_par_iter())
+            .collect();
+
         let end = Instant::now();
-        tracing::info!("Finished indexing apps (t = {}s)", (end - start).as_secs_f32());
+        tracing::info!(
+            "Finished indexing apps (t = {}s)",
+            (end - start).as_secs_f32()
+        );
 
         Ok(res)
     }
@@ -183,19 +185,25 @@ pub fn index_installed_apps(config: &Config) -> anyhow::Result<Vec<App>> {
     {
         let start = Instant::now();
 
-        let res = config.index_dirs
+        let res = config
+            .index_dirs
             .par_iter()
             .chain(get_known_paths().par_iter())
-            .flat_map(|x| search_dir(
-                x, 
-                &config.index_exclude_patterns, 
-                &config.index_exclude_patterns, 
-                3
-            ))
+            .flat_map(|x| {
+                search_dir(
+                    x,
+                    &config.index_exclude_patterns,
+                    &config.index_exclude_patterns,
+                    3,
+                )
+            })
             .collect();
-        
+
         let end = Instant::now();
-        tracing::info!("Finished indexing apps (t = {}s)", (end - start).as_secs_f32());
+        tracing::info!(
+            "Finished indexing apps (t = {}s)",
+            (end - start).as_secs_f32()
+        );
 
         Ok(res)
     }
