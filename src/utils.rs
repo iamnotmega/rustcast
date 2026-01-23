@@ -157,16 +157,14 @@ pub fn index_installed_apps(config: &Config) -> anyhow::Result<Vec<App>> {
         let mut reg_apps = Vec::new();
         get_apps_from_registry(&mut reg_apps);
 
-        let res = config
-            .index_dirs
+        let res = config.index_dirs
             .par_iter()
-            .chain(get_known_paths().par_iter())
             .flat_map(|x| {
                 search_dir(
-                    x,
+                    &x.path,
                     &config.index_exclude_patterns,
                     &config.index_include_patterns,
-                    3,
+                    x.max_depth
                 )
             })
             .chain(reg_apps.into_par_iter())

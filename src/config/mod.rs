@@ -4,6 +4,8 @@ use std::{path::PathBuf, sync::Arc};
 use iced::{Font, font::Family, theme::Custom};
 use serde::{Deserialize, Serialize};
 
+#[cfg(target_os = "windows")]
+use crate::cross_platform::windows::app_finding::get_known_paths;
 use crate::{
     app::apps::{App, AppCommand},
     commands::Function,
@@ -14,6 +16,7 @@ use crate::{
 use crate::utils::handle_from_icns;
 
 mod patterns;
+mod include_patterns;
 
 /// The main config struct (effectively the config file's "schema")
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -28,7 +31,9 @@ pub struct Config {
     pub haptic_feedback: bool,
     pub show_trayicon: bool,
     pub shells: Vec<Shelly>,
-    pub index_dirs: Vec<PathBuf>,
+
+    #[serde(with = "include_patterns")]
+    pub index_dirs: Vec<include_patterns::Pattern>,
 
     #[serde(with = "patterns")]
     pub index_exclude_patterns: Vec<glob::Pattern>,
@@ -40,6 +45,15 @@ pub struct Config {
 impl Default for Config {
     /// The default config
     fn default() -> Self {
+        #[cfg(target_os = "windows")]
+        let index_dirs = get_known_paths()
+            .into_iter()
+            .map(|path| include_patterns::Pattern { path, max_depth: 3 })
+            .collect();
+
+        #[cfg(not(target_os = "windows"))]
+        let index_dirs = Vec::new();
+
         Self {
             toggle_hotkey: "ALT+SPACE".to_string(),
             buffer_rules: Buffer::default(),
@@ -49,7 +63,7 @@ impl Default for Config {
             haptic_feedback: false,
             show_trayicon: true,
             shells: vec![],
-            index_dirs: vec![],
+            index_dirs: index_dirs,
             index_exclude_patterns: vec![],
             index_include_patterns: vec![],
         }
