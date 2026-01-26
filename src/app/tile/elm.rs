@@ -15,16 +15,16 @@ use rayon::{
     slice::ParallelSliceMut,
 };
 
-use crate::app::WINDOW_WIDTH;
 use crate::app::pages::clipboard::clipboard_view;
 use crate::app::pages::emoji::emoji_page;
 use crate::app::tile::AppIndex;
 use crate::config::Theme;
 use crate::styles::{contents_style, rustcast_text_input_style, tint, with_alpha};
+use crate::{app::WINDOW_WIDTH, platform};
 use crate::{
     app::{Message, Page, apps::App, default_settings, tile::Tile},
     config::Config,
-    macos::{self, transform_process_to_ui_element},
+    platform::transform_process_to_ui_element,
     utils::get_installed_apps,
 };
 
@@ -46,7 +46,7 @@ pub fn new(hotkey: HotKey, config: &Config) -> (Tile, Task<Message>) {
     let (id, open) = window::open(default_settings());
 
     let open = open.discard().chain(window::run(id, |handle| {
-        macos::macos_window_config(&handle.window_handle().expect("Unable to get window handle"));
+        platform::window_config(&handle.window_handle().expect("Unable to get window handle"));
         transform_process_to_ui_element();
     }));
 
