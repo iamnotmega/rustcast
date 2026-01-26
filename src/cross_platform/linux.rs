@@ -3,18 +3,17 @@ use std::{fs, path::Path, process::Command, thread};
 use glob::glob;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{app::{apps::App, tile::elm::default_app_paths}, config::Config};
+use crate::{app::{apps::{App, AppCommand}, tile::elm::default_app_paths}, config::Config};
 
 pub fn get_installed_linux_apps(config: &Config) -> Vec<App> {
     let paths = default_app_paths();
     let store_icons = config.theme.show_icons;
-    
-    let apps: Vec<App> = paths
-        .par_iter()
-        .map(|path| get_installed_apps_glob(path, store_icons))
-        .flatten()
-        .collect();
-    todo!()
+
+    // let apps: Vec<App> = paths
+    //     .par_iter()
+    //     .map(|path| get_installed_apps_glob(path, store_icons))
+    //     .flatten()
+    //     .collect();
     // index_dirs_from_config(&mut apps);
     //
     // apps

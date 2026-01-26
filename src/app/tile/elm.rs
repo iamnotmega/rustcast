@@ -74,7 +74,7 @@ pub fn new(hotkey: HotKey, config: &Config) -> (Tile, Task<Message>) {
     }
 
     // id unused on windows, but not macos
-    #[cfg_attr(target_os = "windows", allow(unused))]
+    #[allow(unused)]
     let (id, open) = window::open(settings);
 
     #[cfg(target_os = "windows")]

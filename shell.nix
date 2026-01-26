@@ -10,5 +10,10 @@ pkgs.mkShell {
     pkgs.pango
     pkgs.gtk3
     pkgs.xdotool
+    pkgs.libayatana-appindicator
   ];
+
+  shellHook = ''
+    export LD_LIBRARY_PATH=${pkgs.libayatana-appindicator}/lib:$LD_LIBRARY_PATH
+  '';
 }

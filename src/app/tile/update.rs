@@ -309,7 +309,8 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
         Message::WindowFocusChanged(wid, focused) => {
             tile.focused = focused;
             if !focused {
-                Task::done(Message::HideWindow(wid)).chain(Task::done(Message::ClearSearchQuery))
+                // Task::done(Message::HideWindow(wid)).chain(Task::done(Message::ClearSearchQuery))
+                Task::none()
             } else {
                 Task::none()
             }
