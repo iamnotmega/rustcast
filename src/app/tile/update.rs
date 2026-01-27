@@ -67,7 +67,11 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
         Message::SetSender(sender) => {
             tile.sender = Some(sender.clone());
             if tile.config.show_trayicon {
-                tile.tray_icon = Some(menu_icon(tile.hotkey, sender));
+                tile.tray_icon = Some(menu_icon(
+                    #[cfg(not(target_os = "linux"))]
+                    tile.hotkey,
+                    sender,
+                ));
             }
             Task::none()
         }
@@ -202,43 +206,72 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             Task::none()
         }
 
-        Message::KeyPressed(hk_id) => {
-            let is_clipboard_hotkey = tile
-                .clipboard_hotkey
-                .map(|hotkey| hotkey.id == hk_id)
-                .unwrap_or(false);
-            let is_open_hotkey = hk_id == tile.hotkey.id;
+        Message::OpenClipboard => {
+            if !tile.visible {
+                return Task::batch([
+                    open_window(),
+                    Task::done(Message::SwitchToPage(Page::ClipboardHistory)),
+                ]);
+            }
 
-            let clipboard_page_task = if is_clipboard_hotkey {
-                Task::done(Message::SwitchToPage(Page::ClipboardHistory))
-            } else if is_open_hotkey {
-                Task::done(Message::SwitchToPage(Page::Main))
+            tile.visible = !tile.visible;
+
+            let clear_search_query = if tile.config.buffer_rules.clear_on_hide {
+                Task::done(Message::ClearSearchQuery)
             } else {
                 Task::none()
             };
 
-            if is_open_hotkey || is_clipboard_hotkey {
-                if !tile.visible {
-                    return Task::batch([open_window(), clipboard_page_task]);
-                }
+            let to_close = window::latest().map(|x| x.unwrap());
+            Task::batch([
+                to_close.map(Message::HideWindow),
+                clear_search_query,
+                Task::done(Message::ReturnFocus),
+            ])
+        }
 
-                tile.visible = !tile.visible;
+        Message::OpenMain => {
+            if !tile.visible {
+                return Task::batch([open_window(), Task::done(Message::SwitchToPage(Page::Main))]);
+            }
 
-                let clear_search_query = if tile.config.buffer_rules.clear_on_hide {
-                    Task::done(Message::ClearSearchQuery)
-                } else {
-                    Task::none()
-                };
+            tile.visible = !tile.visible;
 
-                let to_close = window::latest().map(|x| x.unwrap());
-                Task::batch([
-                    to_close.map(Message::HideWindow),
-                    clear_search_query,
-                    Task::done(Message::ReturnFocus),
-                ])
+            let clear_search_query = if tile.config.buffer_rules.clear_on_hide {
+                Task::done(Message::ClearSearchQuery)
             } else {
                 Task::none()
-            }
+            };
+
+            let to_close = window::latest().map(|x| x.unwrap());
+            Task::batch([
+                to_close.map(Message::HideWindow),
+                clear_search_query,
+                Task::done(Message::ReturnFocus),
+            ])
+        }
+
+        Message::KeyPressed(_) => Task::none(),
+
+        #[cfg(not(target_os = "linux"))]
+        Message::HotkeyPressed(hk_id) => {
+            // Linux Clipboard and Open Hotkey are gonna be handled via a socket
+            let is_clipboard_hotkey = tile
+                .clipboard_hotkey
+                .map(|hotkey| hotkey.id == hk_id)
+                .unwrap_or(false);
+
+            let is_open_hotkey = hk_id == tile.hotkey.id;
+
+            let clipboard_page_task = if is_clipboard_hotkey {
+                handle_update(tile, Message::OpenClipboard);
+                Task::done(Message::SwitchToPage(Page::ClipboardHistory))
+            } else if is_open_hotkey {
+                handle_update(tile, Message::OpenMain);
+                Task::done(Message::SwitchToPage(Page::Main))
+            } else {
+                Task::none()
+            };
         }
 
         Message::SwitchToPage(page) => {

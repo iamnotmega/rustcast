@@ -1,6 +1,7 @@
 //! This module handles the logic for the new and view functions according to the elm
 //! architecture. If the subscription function becomes too large, it should be moved to this file
 
+#[cfg(not(target_os = "linux"))]
 use global_hotkey::hotkey::HotKey;
 use iced::border::Radius;
 use iced::widget::scrollable::{Anchor, Direction, Scrollbar};
@@ -48,18 +49,31 @@ pub fn default_app_paths() -> Vec<String> {
 
     #[cfg(target_os = "linux")]
     {
-        let user_local_path = dirs::home_dir().unwrap().join(".local/share/applications/");
-        vec![
-            "/usr/share/applications/".to_string(),
-            "/usr/local/share/applications/".to_string(),
-            "/nix/store/*/share/applications/".to_string(),
-            user_local_path.to_string_lossy().to_string(),
-        ]
+        use std::path::PathBuf;
+
+        let mut dirs = Vec::new();
+
+        let user_dir: PathBuf = std::env::var("XDG_DATA_HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| dirs::home_dir().unwrap().join(".local/share"));
+        dirs.push(user_dir.join("applications").to_string_lossy().to_string());
+
+        let sys_dirs = std::env::var("XDG_DATA_DIRS")
+            .unwrap_or_else(|_| "/usr/local/share:/usr/share".to_string());
+
+        for dir in sys_dirs.split(':') {
+            dirs.push(PathBuf::from(dir).to_string_lossy().to_string());
+        }
+
+        dirs
     }
 }
 
 /// Initialise the base window
-pub fn new(hotkey: HotKey, config: &Config) -> (Tile, Task<Message>) {
+pub fn new(
+    #[cfg(not(target_os = "linux"))] hotkey: Option<HotKey>,
+    config: &Config,
+) -> (Tile, Task<Message>) {
     #[allow(unused_mut)]
     let mut settings = default_settings();
 
@@ -107,8 +121,10 @@ pub fn new(hotkey: HotKey, config: &Config) -> (Tile, Task<Message>) {
             results: vec![],
             options,
             emoji_apps: AppIndex::from_apps(App::emoji_apps()),
+            #[cfg(not(target_os = "linux"))]
             hotkey,
             visible: true,
+            #[cfg(not(target_os = "linux"))]
             clipboard_hotkey: config
                 .clipboard_hotkey
                 .clone()

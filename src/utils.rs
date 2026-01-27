@@ -7,7 +7,7 @@ use std::{
     thread,
 };
 
-#[cfg(any(target_os = "macos", target_os = "linux"))]
+#[cfg(target_os = "macos")]
 use iced::widget::image::Handle;
 #[cfg(target_os = "macos")]
 use icns::IconFamily;
@@ -53,15 +53,6 @@ pub(crate) fn handle_from_icns(path: &Path) -> Option<Handle> {
         image.height(),
         image.into_raw(),
     ));
-}
-
-#[cfg(target_os = "linux")]
-pub(crate) fn handle_from_icns(path: &Path) -> Option<Handle> {
-    use image::ImageReader;
-
-    let img = ImageReader::open(path).ok()?.decode().ok()?.to_rgb8();
-
-    Some(Handle::from_rgba(img.width(), img.height(), img.into_raw()))
 }
 
 pub fn get_config_installation_dir() -> PathBuf {

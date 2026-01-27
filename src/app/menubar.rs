@@ -1,14 +1,14 @@
 //! This has the menubar icon logic for the app
 
+#[cfg(not(target_os = "linux"))]
 use global_hotkey::hotkey::{Code, HotKey, Modifiers};
 use image::DynamicImage;
 use tokio::runtime::Runtime;
+#[cfg(not(target_os = "linux"))]
+use tray_icon::menu::accelerator::Accelerator;
 use tray_icon::{
     Icon, TrayIcon, TrayIconBuilder,
-    menu::{
-        AboutMetadataBuilder, Icon as Ico, Menu, MenuEvent, MenuItem, PredefinedMenuItem,
-        accelerator::Accelerator,
-    },
+    menu::{AboutMetadataBuilder, Icon as Ico, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
 };
 
 use crate::{
@@ -19,13 +19,16 @@ use crate::{
 const DISCORD_LINK: &str = "https://discord.gg/bDfNYPbnC5";
 
 /// This create a new menubar icon for the app
-pub fn menu_icon(hotkey: HotKey, sender: ExtSender) -> TrayIcon {
+pub fn menu_icon(
+    #[cfg(not(target_os = "linux"))] hotkey: Option<HotKey>,
+    sender: ExtSender,
+) -> TrayIcon {
     let builder = TrayIconBuilder::new();
 
     let image = get_image();
     let icon = Icon::from_rgba(image.as_bytes().to_vec(), image.width(), image.height()).unwrap();
 
-    init_event_handler(sender, hotkey.id());
+    init_event_handler(sender);
 
     let menu = Menu::with_items(&[
         &version_item(),
@@ -33,7 +36,10 @@ pub fn menu_icon(hotkey: HotKey, sender: ExtSender) -> TrayIcon {
         &open_github_item(),
         &PredefinedMenuItem::separator(),
         &refresh_item(),
-        &open_item(hotkey),
+        &open_item(
+            #[cfg(not(target_os = "linux"))]
+            hotkey,
+        ),
         &PredefinedMenuItem::separator(),
         &open_issue_item(),
         &get_help_item(),
@@ -77,7 +83,7 @@ fn get_image() -> DynamicImage {
     }
 }
 
-fn init_event_handler(sender: ExtSender, hotkey_id: u32) {
+fn init_event_handler(sender: ExtSender) {
     tracing::debug!("Initing event handler");
     let runtime = Runtime::new().unwrap();
 
@@ -99,10 +105,7 @@ fn init_event_handler(sender: ExtSender, hotkey_id: u32) {
             }
             "show_rustcast" => {
                 runtime.spawn(async move {
-                    sender
-                        .clone()
-                        .try_send(Message::KeyPressed(hotkey_id))
-                        .unwrap();
+                    sender.clone().try_send(Message::OpenWindow).unwrap();
                 });
             }
             "open_discord" => {
@@ -135,12 +138,15 @@ fn hide_tray_icon() -> MenuItem {
     MenuItem::with_id("hide_tray_icon", "Hide Tray Icon", true, None)
 }
 
-fn open_item(hotkey: HotKey) -> MenuItem {
+fn open_item(#[cfg(not(target_os = "linux"))] hotkey: HotKey) -> MenuItem {
     MenuItem::with_id(
         "show_rustcast",
         "Toggle View",
         true,
-        Some(Accelerator::new(Some(hotkey.mods), hotkey.key)),
+        #[cfg(not(target_os = "linux"))]
+        Accelerator::new(Some(hotkey.mods), hotkey.key),
+        #[cfg(target_os = "linux")]
+        None,
     )
 }
 
@@ -157,10 +163,13 @@ fn refresh_item() -> MenuItem {
         "refresh_rustcast",
         "Refresh",
         true,
+        #[cfg(not(target_os = "linux"))]
         Some(Accelerator::new(
             Some(Modifiers::SUPER),
             global_hotkey::hotkey::Code::KeyR,
         )),
+        #[cfg(target_os = "linux")]
+        None,
     )
 }
 
@@ -169,7 +178,10 @@ fn open_settings_item() -> MenuItem {
         "open_preferences",
         "Open Preferences",
         true,
+        #[cfg(not(target_os = "linux"))]
         Some(Accelerator::new(Some(Modifiers::SUPER), Code::Comma)),
+        #[cfg(target_os = "linux")]
+        None,
     )
 }
 

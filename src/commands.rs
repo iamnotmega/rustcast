@@ -71,7 +71,12 @@ impl Function {
 
                 #[cfg(target_os = "linux")]
                 thread::spawn(move || {
-                    Command::new("xdg-open").arg(query).spawn().unwrap();
+                    Command::new("xdg-open")
+                        .arg(query)
+                        .spawn()
+                        .unwrap()
+                        .wait()
+                        .unwrap();
                 });
             }
 
@@ -103,7 +108,7 @@ impl Function {
                     format!("https://{}", url)
                 };
 
-                cross_platform::open_url(url);
+                cross_platform::open_url(&open_url);
             }
 
             Function::Calculate(expr) => {

@@ -2,6 +2,8 @@ use std::{fs, path::Path, process::Command, thread};
 
 use freedesktop_desktop_entry::DesktopEntry;
 use glob::glob;
+use iced::widget::image::Handle;
+use image::{EncodableLayout, ImageReader, RgbaImage};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
@@ -14,94 +16,157 @@ use crate::{
 
 pub fn get_installed_linux_apps(config: &Config) -> Vec<App> {
     let paths = default_app_paths();
+    dbg!(&paths);
     let store_icons = config.theme.show_icons;
 
     let apps: Vec<App> = paths
         .par_iter()
-        .map(|path| get_installed_apps_glob(path, store_icons))
+        .map(|path| {
+            let mut pattern = path.clone();
+            if !pattern.ends_with('/') {
+                pattern.push('/');
+            }
+            pattern.push_str("**/*.desktop");
+
+            get_installed_apps_glob(&pattern, store_icons)
+        })
         .flatten()
         .collect();
-    //index_dirs_from_config(&mut apps);
 
     apps
 }
 
-fn get_installed_apps_glob(path: &str, store_icons: bool) -> Vec<App> {
-    if path.contains("*") {
-        glob(path)
-            .unwrap()
-            .flatten()
-            .flat_map(|entry| get_installed_apps(entry.to_str().unwrap(), store_icons))
-            .collect()
-    } else {
-        get_installed_apps(path, store_icons)
-    }
+fn get_installed_apps_glob(pattern: &str, store_icons: bool) -> Vec<App> {
+    glob(pattern)
+        .unwrap()
+        .flatten()
+        .flat_map(|entry| get_installed_apps(entry.as_path(), store_icons))
+        .collect()
 }
 
-fn get_installed_apps(path: &str, store_icons: bool) -> Vec<App> {
+fn get_installed_apps(path: &Path, store_icons: bool) -> Vec<App> {
     let mut apps = Vec::new();
-    let dir = Path::new(path);
 
-    if !dir.exists() || !dir.is_dir() {
+    let Ok(content) = fs::read_to_string(path) else {
+        return apps;
+    };
+
+    let Ok(de) = DesktopEntry::from_str(path, &content, None::<&[String]>) else {
+        return apps;
+    };
+
+    if de.no_display() || de.hidden() {
         return apps;
     }
 
-    for entry in fs::read_dir(dir).unwrap().flatten() {
-        let path = entry.path();
-        if path.extension().and_then(|s| s.to_str()) != Some("desktop") {
-            continue;
-        }
+    let Some(name) = de.desktop_entry("Name") else {
+        return apps;
+    };
+    let desc = de.desktop_entry("Comment").unwrap_or("");
+    let Some(exec) = de.exec() else {
+        return apps;
+    };
 
-        let Ok(content) = fs::read_to_string(&path) else {
-            continue;
-        };
+    let exec = exec.to_string();
+    let mut parts = exec.split_whitespace().filter(|p| !p.starts_with("%"));
 
-        let Ok(de) = DesktopEntry::from_str(path.as_path(), &content, None::<&[String]>) else {
-            continue;
-        };
+    let Some(cmd) = parts.next() else {
+        return apps;
+    };
 
-        if de.no_display() || de.hidden() {
-            continue;
-        }
+    let args = parts.map(str::to_owned).collect::<Vec<_>>().join(" ");
 
-        let Some(name) = de.desktop_entry("Name") else {
-            continue;
-        };
-        let desc = de.desktop_entry("Comment").unwrap_or("");
-        let Some(exec) = de.exec() else { continue };
+    let icon = if store_icons {
+        de.icon()
+            .map(str::to_owned)
+            .and_then(|icon_name| find_icon_handle(&icon_name))
+    } else {
+        None
+    };
 
-        let exec = exec.to_string();
-        let mut parts = exec.split_whitespace().filter(|p| !p.starts_with("%"));
-
-        let Some(cmd) = parts.next() else { continue };
-
-        let args = parts.map(str::to_owned).collect::<Vec<_>>().join(" ");
-
-        // TODO: load icons
-        let icon = if store_icons {
-            de.icon().map(str::to_owned)
-        } else {
-            None
-        };
-
-        apps.push(App {
-            icons: None,
-            name: name.to_string(),
-            name_lc: name.to_lowercase(),
-            desc: desc.to_string(),
-            open_command: AppCommand::Function(crate::commands::Function::RunShellCommand(
-                cmd.to_string(),
-                args,
-            )),
-        });
+    if name.to_string().contains("Firefox") {
+        dbg!(&icon);
     }
 
+    apps.push(App {
+        icons: icon,
+        name: name.to_string(),
+        name_lc: name.to_lowercase(),
+        desc: desc.to_string(),
+        open_command: AppCommand::Function(crate::commands::Function::RunShellCommand(
+            cmd.to_string(),
+            args,
+        )),
+    });
+
     apps
+}
+
+pub fn handle_from_png(path: &Path) -> Option<Handle> {
+    let img = ImageReader::open(path);
+    let img = match img {
+        Err(e) => { dbg!(e); return None; },
+        Ok(i) => i,
+    };
+    let img = img.decode();
+    let img = match img {
+        Err(e) => { dbg!(e); return None; },
+        Ok(i) => i,
+    };
+    let img = img.to_rgba8();
+    if img.width() == 0 || img.height() == 0 || img.as_bytes().is_empty() {
+        panic!("Image not loaded correctly!");
+    }
+
+    let image = RgbaImage::from_raw(img.width(), img.height(), img.to_vec());
+    match image {
+        Some(image) => {
+            Some(Handle::from_rgba(
+                    image.width(),
+                    image.height(),
+                    image.into_raw(),
+            ))
+        }
+        None => panic!()
+    }
+    }
+
+fn find_icon_handle(name: &str) -> Option<Handle> {
+    let paths = default_app_paths();
+
+    for dir in paths {
+        let mut pattern = dir.clone();
+
+        if !pattern.ends_with('/') {
+            pattern.push('/');
+        }
+        pattern.push_str(&format!("icons/**/{}*", name));
+
+        if name == "firefox" {
+            dbg!(&pattern);
+        }
+
+        for entry in glob(&pattern).ok()?.flatten() {
+            if name == "firefox" {
+                dbg!(&pattern);
+            }
+            if let Some(handle) = handle_from_png(&entry) {
+                return Some(handle);
+            }
+        }
+    }
+
+    None
 }
 
 pub fn open_url(url: &str) {
     let url = url.to_owned();
     thread::spawn(move || {
-        Command::new("xdg-open").arg(url).spawn().unwrap();
+        Command::new("xdg-open")
+            .arg(url)
+            .spawn()
+            .unwrap()
+            .wait()
+            .unwrap();
     });
 }

@@ -15,7 +15,9 @@ use crate::config::Config;
 use crate::cross_platform::open_settings;
 
 use arboard::Clipboard;
+#[cfg(not(target_os = "linux"))]
 use global_hotkey::hotkey::HotKey;
+#[cfg(not(target_os = "linux"))]
 use global_hotkey::{GlobalHotKeyEvent, HotKeyState};
 
 use iced::futures::SinkExt;
@@ -108,7 +110,9 @@ pub struct Tile {
     frontmost: Option<HWND>,
     pub config: Config,
     /// The opening hotkey
+    #[cfg(not(target_os = "linux"))]
     hotkey: HotKey,
+    #[cfg(not(target_os = "linux"))]
     clipboard_hotkey: Option<HotKey>,
     clipboard_content: Vec<ClipBoardContentType>,
     tray_icon: Option<TrayIcon>,
@@ -150,6 +154,7 @@ impl Tile {
             _ => None,
         });
         Subscription::batch([
+            #[cfg(not(target_os = "linux"))]
             Subscription::run(handle_hotkeys),
             keyboard,
             Subscription::run(handle_recipient),
@@ -235,6 +240,7 @@ impl Tile {
     }
 
     // Unused, keeping it for now
+    #[allow(unused)]
     pub fn capture_frontmost(&mut self) {
         #[cfg(target_os = "macos")]
         {
@@ -251,7 +257,7 @@ impl Tile {
     }
 
     /// Restores the frontmost application.
-    #[allow(deprecated)]
+    #[allow(deprecated, unused)]
     pub fn restore_frontmost(&mut self) {
         #[cfg(target_os = "macos")]
         {
@@ -325,6 +331,7 @@ fn count_dirs_in_dir(dir: &PathBuf) -> usize {
 }
 
 /// This is the subscription function that handles hotkeys for hiding / showing the window
+#[cfg(not(target_os = "linux"))]
 fn handle_hotkeys() -> impl futures::Stream<Item = Message> {
     stream::channel(100, async |mut output| {
         let receiver = GlobalHotKeyEvent::receiver();
@@ -332,7 +339,7 @@ fn handle_hotkeys() -> impl futures::Stream<Item = Message> {
             if let Ok(event) = receiver.recv()
                 && event.state == HotKeyState::Pressed
             {
-                output.try_send(Message::KeyPressed(event.id)).unwrap();
+                output.try_send(Message::HotkeyPressed(event.id)).unwrap();
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
         }

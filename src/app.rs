@@ -48,12 +48,17 @@ pub enum Move {
 pub enum Message {
     OpenWindow,
     SearchQueryChanged(String, Id),
+    #[cfg(not(target_os = "linux"))]
+    HotkeyPressed(u32),
+    #[allow(unused)]
     KeyPressed(u32),
     FocusTextInput(Move),
     HideWindow(Id),
     RunFunction(Function),
     OpenFocused,
     ReturnFocus,
+    OpenClipboard,
+    OpenMain,
     EscKeyPressed(Id),
     ClearSearchResults,
     WindowFocusChanged(Id, bool),
