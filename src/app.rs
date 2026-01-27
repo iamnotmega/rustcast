@@ -82,6 +82,9 @@ pub fn default_settings() -> Settings {
         blur: false,
         size: iced::Size {
             width: WINDOW_WIDTH,
+            #[cfg(not(target_os = "linux"))]
+            height: DEFAULT_WINDOW_HEIGHT,
+            #[cfg(target_os = "linux")]
             height: ((5 * 55) + 35 + DEFAULT_WINDOW_HEIGHT as usize) as f32,
         },
         ..Default::default()
