@@ -35,7 +35,7 @@ use crate::config::Config;
 use crate::unit_conversion;
 use crate::utils::get_installed_apps;
 
-use crate::utils::is_valid_url;
+use crate::utils::is_url_like;
 #[cfg(target_os = "macos")]
 use crate::{
     cross_platform::macos::focus_this_app,
@@ -468,7 +468,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                         }
                     })
                     .collect();
-            } else if tile.results.is_empty() && is_valid_url(&tile.query) {
+            } else if tile.results.is_empty() && is_url_like(&tile.query) {
                 tile.results.push(App {
                     open_command: AppCommand::Function(Function::OpenWebsite(tile.query.clone())),
                     desc: "Web Browsing".to_string(),

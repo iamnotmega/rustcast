@@ -1,7 +1,7 @@
 //! This handles all the different commands that rustcast can perform, such as opening apps,
 //! copying to clipboard, etc.
 use std::process::Command;
-#[cfg(any(target_os = "macos", target_os = "linux"))]
+#[cfg(target_os = "macos")]
 use std::thread;
 
 use arboard::Clipboard;
@@ -59,25 +59,6 @@ impl Function {
                 let query = query.strip_suffix("?").unwrap_or(&query).to_string();
 
                 cross_platform::open_url(&query);
-
-                #[cfg(target_os = "macos")]
-                NSWorkspace::new().openURL(
-                    &NSURL::URLWithString_relativeToURL(
-                        &objc2_foundation::NSString::from_str(&query),
-                        None,
-                    )
-                    .unwrap(),
-                );
-
-                #[cfg(target_os = "linux")]
-                thread::spawn(move || {
-                    Command::new("xdg-open")
-                        .arg(query)
-                        .spawn()
-                        .unwrap()
-                        .wait()
-                        .unwrap();
-                });
             }
 
             Function::OpenWebsite(url) => {
