@@ -80,25 +80,6 @@ impl Function {
                 });
             }
 
-            #[cfg(target_os = "macos")]
-            Function::OpenWebsite(url) => {
-                let open_url = if url.starts_with("http") {
-                    url.to_owned()
-                } else {
-                    format!("https://{}", url)
-                };
-
-                thread::spawn(move || {
-                    NSWorkspace::new().openURL(
-                        &NSURL::URLWithString_relativeToURL(
-                            &objc2_foundation::NSString::from_str(&open_url),
-                            None,
-                        )
-                        .unwrap(),
-                    );
-                });
-            }
-
             Function::OpenWebsite(url) => {
                 use crate::cross_platform;
 

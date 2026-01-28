@@ -71,7 +71,7 @@ pub fn default_app_paths() -> Vec<String> {
 
 /// Initialise the base window
 pub fn new(
-    #[cfg(not(target_os = "linux"))] hotkey: Option<HotKey>,
+    #[cfg(not(target_os = "linux"))] hotkey: HotKey,
     config: &Config,
 ) -> (Tile, Task<Message>) {
     #[allow(unused_mut)]

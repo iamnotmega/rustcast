@@ -263,15 +263,13 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
 
             let is_open_hotkey = hk_id == tile.hotkey.id;
 
-            let clipboard_page_task = if is_clipboard_hotkey {
-                handle_update(tile, Message::OpenClipboard);
-                Task::done(Message::SwitchToPage(Page::ClipboardHistory))
+            if is_clipboard_hotkey {
+                handle_update(tile, Message::OpenClipboard)
             } else if is_open_hotkey {
-                handle_update(tile, Message::OpenMain);
-                Task::done(Message::SwitchToPage(Page::Main))
+                handle_update(tile, Message::OpenMain)
             } else {
                 Task::none()
-            };
+            }
         }
 
         Message::SwitchToPage(page) => {
@@ -347,8 +345,11 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
         Message::WindowFocusChanged(wid, focused) => {
             tile.focused = focused;
             if !focused {
-                // Task::done(Message::HideWindow(wid)).chain(Task::done(Message::ClearSearchQuery))
-                Task::none()
+                if cfg!(target_os = "macos") {
+                    Task::done(Message::HideWindow(wid)).chain(Task::done(Message::ClearSearchQuery))
+                } else { // linux seems to not wanna unfocus it on start making it not show
+                    Task::none()
+                }
             } else {
                 Task::none()
             }

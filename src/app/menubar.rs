@@ -20,7 +20,7 @@ const DISCORD_LINK: &str = "https://discord.gg/bDfNYPbnC5";
 
 /// This create a new menubar icon for the app
 pub fn menu_icon(
-    #[cfg(not(target_os = "linux"))] hotkey: Option<HotKey>,
+    #[cfg(not(target_os = "linux"))] hotkey: HotKey,
     sender: ExtSender,
 ) -> TrayIcon {
     let builder = TrayIconBuilder::new();
@@ -144,7 +144,7 @@ fn open_item(#[cfg(not(target_os = "linux"))] hotkey: HotKey) -> MenuItem {
         "Toggle View",
         true,
         #[cfg(not(target_os = "linux"))]
-        Accelerator::new(Some(hotkey.mods), hotkey.key),
+        Some(Accelerator::new(Some(hotkey.mods), hotkey.key)),
         #[cfg(target_os = "linux")]
         None,
     )

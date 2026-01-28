@@ -53,9 +53,7 @@ impl PartialEq for App {
 fn rustcast_icons() -> Option<iced::widget::image::Handle> {
     #[cfg(target_os = "macos")]
     {
-        use std::path::Path;
-
-        handle_from_icns(Path::new(
+        handle_from_icns(std::path::Path::new(
             "/Applications/Rustcast.app/Contents/Resources/icon.icns",
         ))
     }
@@ -132,7 +130,7 @@ impl App {
                     "/System/Library/CoreServices/Finder.app".to_string(),
                 )),
                 desc: "Application".to_string(),
-                icons: handle_from_icns(Path::new(
+                icons: handle_from_icns(std::path::Path::new(
                     "/System/Library/CoreServices/Finder.app/Contents/Resources/Finder.icns",
                 )),
                 name: "Finder".to_string(),

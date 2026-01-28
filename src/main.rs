@@ -97,7 +97,7 @@ fn main() -> iced::Result {
             tracing::error!("{}", e.to_string());
         }
 
-        show_hide_bind = Some(show_hide);
+        show_hide
     };
 
     tracing::info!("Starting.");
