@@ -222,11 +222,11 @@ pub fn view(tile: &Tile, wid: window::Id) -> Element<'_, Message> {
                 .push(footer(tile.config.theme.clone(), results_count))
                 .spacing(0),
         )
-            .width(Length::Fixed(WINDOW_WIDTH))
-            .height(Length::Shrink)
-            .align_x(Alignment::Center)
-            .align_y(Alignment::Start)
-            .style(|_| container::Style {
+        .width(Length::Fixed(WINDOW_WIDTH))
+        .height(Length::Shrink)
+        .align_x(Alignment::Center)
+        .align_y(Alignment::Start)
+        .style(|_| container::Style {
             text_color: None,
             background: None,
             border: iced::Border {
