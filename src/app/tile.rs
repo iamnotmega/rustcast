@@ -350,7 +350,14 @@ fn handle_hotkeys() -> impl futures::Stream<Item = Message> {
 
 #[cfg(target_os = "linux")]
 fn handle_socket() -> impl futures::Stream<Item = Message> {
-    stream::channel(100, async |output| {
+    stream::channel(100, async |mut output| {
+        let clipboard = env::args().any(|arg| arg.trim() == "--cphist");
+        if clipboard {
+            output.try_send(Message::OpenClipboard).unwrap();
+        }
+
+        use std::env;
+
         use tokio::net::UnixListener;
 
         let _ = fs::remove_file(crate::SOCKET_PATH);
@@ -367,6 +374,8 @@ fn handle_socket() -> impl futures::Stream<Item = Message> {
                 info!("received socket command {s}");
                 if s.trim() == "toggle" {
                     output.try_send(Message::OpenMain).unwrap();
+                } else if s.trim() == "clipboard" {
+                    output.try_send(Message::OpenClipboard).unwrap();
                 }
             });
         }

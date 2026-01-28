@@ -76,8 +76,12 @@ fn main() -> iced::Result {
         if UnixListener::bind(SOCKET_PATH).is_err() {
             match UnixStream::connect(SOCKET_PATH) {
                 Ok(mut stream) => {
-                    info!("toggling via socket");
-                    let _ = stream.write_all(b"toggle");
+                    use std::env;
+
+                    let clipboard = env::args().any(|arg| arg.trim() == "--cphist");
+                    let cmd = if clipboard { "clipboard" } else { "toggle" };
+                    info!("socket sending: {cmd}");
+                    let _ = stream.write_all(cmd.as_bytes());
                     std::process::exit(0);
                 }
                 Err(_) => {
