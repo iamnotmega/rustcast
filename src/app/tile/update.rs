@@ -1,28 +1,28 @@
 //! This handles the update logic for the tile (AKA rustcast's main window)
 use std::fs;
-#[cfg(target_os = "macos")]
-use std::path::Path;
 use std::thread;
 
 use iced::Task;
-#[cfg(target_os = "macos")]
-use iced::widget::image::Handle;
-use iced::widget::operation;
-use iced::widget::operation::AbsoluteOffset;
+use iced::widget::{
+    operation,
+    operation::AbsoluteOffset
+};
 use iced::window;
 use rayon::slice::ParallelSliceMut;
 
-use crate::app::ArrowKey;
-use crate::app::DEFAULT_WINDOW_HEIGHT;
-use crate::app::Move;
-use crate::app::WINDOW_WIDTH;
-use crate::app::apps::App;
-use crate::app::apps::AppCommand;
-use crate::app::default_settings;
-use crate::app::menubar::menu_icon;
-use crate::app::tile::AppIndex;
-use crate::app::tile::search_query;
-use crate::app::{Message, Page, tile::Tile};
+use crate::app::{
+    ArrowKey,
+    DEFAULT_WINDOW_HEIGHT,
+    Move,
+    WINDOW_WIDTH,
+    apps::App,
+    apps::AppCommand,
+    default_settings,
+    menubar::menu_icon,
+    tile::AppIndex,
+    tile::search_query,
+    Message, Page, tile::Tile
+};
 
 use crate::commands::Function;
 use crate::config::Config;

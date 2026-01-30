@@ -9,39 +9,54 @@ use {
     windows::Win32::Foundation::HWND, windows::Win32::UI::WindowsAndMessaging::SetForegroundWindow,
 };
 
-use crate::app::apps::App;
-use crate::app::tile::elm::default_app_paths;
-use crate::app::{ArrowKey, Message, Move, Page};
-use crate::clipboard::ClipBoardContentType;
-use crate::config::Config;
-use crate::cross_platform::open_settings;
+use std::{
+    collections::BTreeMap,
+    fs,
+    ops::Bound,
+    path::PathBuf,
+    time::Duration
+};
 
-use arboard::Clipboard;
-use global_hotkey::hotkey::HotKey;
-use global_hotkey::{GlobalHotKeyEvent, HotKeyState};
-
-use iced::futures::SinkExt;
-use iced::futures::channel::mpsc::{Sender, channel};
-use iced::keyboard::Modifiers;
 use iced::{
     Subscription, Theme, futures,
-    keyboard::{self, key::Named},
+    futures::{
+        SinkExt,
+        channel::mpsc::{
+            Sender, 
+            channel
+        }
+    },
+    keyboard::{self, key::Named, Modifiers},
     stream,
+    event, 
+    window
 };
-use iced::{event, window};
+
+use global_hotkey::{
+    hotkey::HotKey,
+    GlobalHotKeyEvent, 
+    HotKeyState
+};
+
+use crate::{
+    config::Config,
+    clipboard::ClipBoardContentType,
+    cross_platform::open_settings,
+    app::{
+        apps::App,
+        ArrowKey, Message, Move, Page,
+        tile::elm::default_app_paths
+    }
+};
+
+use rayon::prelude::*;
+use tray_icon::TrayIcon;
+use arboard::Clipboard;
 
 #[cfg(target_os = "macos")]
 use objc2::rc::Retained;
 #[cfg(target_os = "macos")]
 use objc2_app_kit::NSRunningApplication;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use tray_icon::TrayIcon;
-
-use std::collections::BTreeMap;
-use std::fs;
-use std::ops::Bound;
-use std::path::PathBuf;
-use std::time::Duration;
 
 /// This is a wrapper around the sender to disable dropping
 #[derive(Clone, Debug)]
