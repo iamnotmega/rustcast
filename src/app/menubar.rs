@@ -16,7 +16,9 @@ use crate::{
     cross_platform::open_settings,
 };
 
-/// This creates a new menubar icon for the app
+const DISCORD_URL: &str = "https://discord.gg/bDfNYPbnC5";
+
+/// This create a new menubar icon for the app
 pub fn menu_icon(hotkey: HotKey, sender: ExtSender) -> TrayIcon {
     let builder = TrayIconBuilder::new();
 
@@ -37,6 +39,7 @@ pub fn menu_icon(hotkey: HotKey, sender: ExtSender) -> TrayIcon {
         &get_help_item(),
         &PredefinedMenuItem::separator(),
         &open_settings_item(),
+        &discord_item(),
         &hide_tray_icon(),
         &quit_item(),
     ])
@@ -103,6 +106,11 @@ fn init_event_handler(sender: ExtSender, hotkey_id: u32) {
                         .unwrap();
                 });
             }
+            "open_discord" => {
+                if let Err(e) = open::that(DISCORD_URL) {
+                    tracing::error!("Error opening url: {}", e)
+                }
+            }
             "open_help_page" => {
                 if let Err(e) = open::that(
                     "https://github.com/unsecretised/rustcast/discussions/new?category=q-a",
@@ -126,6 +134,10 @@ fn init_event_handler(sender: ExtSender, hotkey_id: u32) {
 fn version_item() -> MenuItem {
     let version = "Version: ".to_string() + option_env!("APP_VERSION").unwrap_or("Unknown");
     MenuItem::new(version, false, None)
+}
+
+fn discord_item() -> MenuItem {
+    MenuItem::with_id("open_discord", "RustCast discord", true, None)
 }
 
 fn hide_tray_icon() -> MenuItem {

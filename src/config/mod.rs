@@ -21,6 +21,7 @@ mod patterns;
 #[serde(default)]
 pub struct Config {
     pub toggle_hotkey: String,
+    pub clipboard_hotkey: Option<String>,
     pub buffer_rules: Buffer,
     pub theme: Theme,
 
@@ -54,6 +55,7 @@ impl Default for Config {
 
         Self {
             toggle_hotkey: "ALT+SPACE".to_string(),
+            clipboard_hotkey: None,
             buffer_rules: Buffer::default(),
             theme: Theme::default(),
             placeholder: String::from("Time to be productive!"),
