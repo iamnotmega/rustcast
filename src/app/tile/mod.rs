@@ -2,6 +2,8 @@
 pub mod elm;
 pub mod update;
 
+mod search_query;
+
 #[cfg(target_os = "windows")]
 use {
     windows::Win32::Foundation::HWND, windows::Win32::UI::WindowsAndMessaging::SetForegroundWindow,
