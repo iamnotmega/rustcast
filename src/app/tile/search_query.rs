@@ -148,7 +148,7 @@ pub(super) fn handle_change(tile: &mut Tile, input: &str, id: Id) -> iced::Task<
         #[cfg(target_os = "macos")]
         {
             use std::path::Path;
-            
+
             tile.results.push(App {
                 open_command: AppCommand::Display,
                 desc: "Easter Egg".to_string(),
