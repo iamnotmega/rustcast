@@ -25,16 +25,28 @@
       devShells.${system}.default = pkgs.mkShell {
         strictDeps = true;
 
-        nativeBuildInputs = [
-          pkgs.rust-toolchain
-          pkgs.pkg-config
-          pkgs.openssl
-          pkgs.sqlx-cli
-          pkgs.gcc
+        nativeBuildInputs = with pkgs; [
+          gcc
+          pkg-config
+          sqlx-cli
+          rust-toolchain
+        ];
+
+        buildInputs = with pkgs; [
+          atk
+          glib
+          gtk3
+          cairo
+          pango
+          openssl
+          xdotool
+          gdk-pixbuf
+          gobject-introspection
+          libayatana-appindicator
         ];
 
         shellHook = ''
-          export PKG_CONFIG_PATH=${pkgs.openssl.dev}/lib/pkgconfig
+          export LD_LIBRARY_PATH=${pkgs.libayatana-appindicator}/lib:$LD_LIBRARY_PATH
         '';
       };
     };

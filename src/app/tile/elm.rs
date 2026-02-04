@@ -13,13 +13,15 @@ use iced::{Length::Fill, widget::text_input};
 
 use rayon::slice::ParallelSliceMut;
 
+#[cfg(target_os = "windows")]
+use crate::app;
 use crate::app::WINDOW_WIDTH;
 use crate::app::pages::clipboard::clipboard_view;
 use crate::app::pages::emoji::emoji_page;
 use crate::app::tile::AppIndex;
 use crate::config::Theme;
 use crate::styles::{contents_style, rustcast_text_input_style, tint, with_alpha};
-use crate::utils::get_installed_apps;
+use crate::utils::index_installed_apps;
 use crate::{
     app::{Message, Page, apps::App, default_settings, tile::Tile},
     config::Config,
@@ -92,7 +94,7 @@ pub fn new(
     let (id, open) = window::open(settings);
 
     #[cfg(target_os = "windows")]
-    let open: Task<crate::app::Message> = open.discard();
+    let open: Task<app::Message> = open.discard();
 
     #[cfg(target_os = "linux")]
     let open = open
@@ -106,7 +108,14 @@ pub fn new(
         Message::OpenWindow
     }));
 
-    let mut options: Vec<App> = get_installed_apps(config);
+    let options = index_installed_apps(config);
+
+    if let Err(ref e) = options {
+        tracing::error!("Error indexing apps: {e}")
+    }
+
+    // Still try to load the rest
+    let mut options = options.unwrap_or_default();
 
     options.extend(config.shells.iter().map(|x| x.to_app()));
     options.extend(App::basic_apps());

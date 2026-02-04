@@ -127,15 +127,3 @@ fn find_icon_handle(name: &str) -> Option<Handle> {
 
     None
 }
-
-pub fn open_url(url: &str) {
-    let url = url.to_owned();
-    thread::spawn(move || {
-        Command::new("xdg-open")
-            .arg(url)
-            .spawn()
-            .unwrap()
-            .wait()
-            .unwrap();
-    });
-}

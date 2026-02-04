@@ -10,7 +10,6 @@ use objc2_app_kit::NSWorkspace;
 #[cfg(target_os = "macos")]
 use objc2_foundation::NSURL;
 
-use crate::cross_platform;
 use crate::utils::open_application;
 use crate::{calculator::Expr, clipboard::ClipBoardContentType, config::Config};
 
@@ -58,19 +57,18 @@ impl Function {
                 let query = config.search_url.replace("%s", &query_args);
                 let query = query.strip_suffix("?").unwrap_or(&query).to_string();
 
-                cross_platform::open_url(&query);
+                open::that(query).unwrap();
             }
 
             Function::OpenWebsite(url) => {
-                use crate::cross_platform;
-
                 let open_url = if url.starts_with("http") {
                     url.to_owned()
                 } else {
                     format!("https://{}", url)
                 };
 
-                cross_platform::open_url(&open_url);
+                // Should never get here without it being validated first
+                open::that(open_url).unwrap();
             }
 
             Function::Calculate(expr) => {
@@ -89,8 +87,8 @@ impl Function {
                 }
             },
 
+            #[cfg(target_os = "macos")]
             Function::OpenPrefPane => {
-                #[cfg(target_os = "macos")]
                 thread::spawn(move || {
                     NSWorkspace::new().openURL(&NSURL::fileURLWithPath(
                         &objc2_foundation::NSString::from_str(
@@ -102,6 +100,10 @@ impl Function {
             }
 
             Function::Quit => std::process::exit(0),
+            f => {
+                // TODO: something in the UI to show this
+                tracing::error!("The function {:?} is unimplemented for this platform", f);
+            }
         }
     }
 }

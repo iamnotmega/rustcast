@@ -1,4 +1,5 @@
 //! Main logic for the app
+
 use crate::commands::Function;
 use iced::window::{self, Id, Settings};
 
@@ -77,6 +78,7 @@ pub fn default_settings() -> Settings {
         decorations: false,
         minimizable: false,
         level: window::Level::AlwaysOnTop,
+        position: window::Position::Centered,
         transparent: true,
         blur: false,
         size: iced::Size {
