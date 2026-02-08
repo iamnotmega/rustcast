@@ -1,6 +1,7 @@
 //! This modules handles the logic for each "app" that rustcast can load
 //!
 //! An "app" is effectively, one of the results that rustcast returns when you search for something
+
 use std::{
     path::{Path, PathBuf},
     sync::atomic::{AtomicUsize, Ordering},
@@ -29,34 +30,54 @@ pub enum AppCommand {
     Display,
 }
 
-/// The main app struct, that represents an "App"
-///
-/// This struct represents a command that rustcast can perform, providing the rustcast
-/// the data needed to search for the app, to display the app in search results, and to actually
-/// "run" the app.
+/// A container for [`App`] data specific to a certain type of app.
 #[derive(Debug, Clone)]
 pub enum AppData {
+    /// A platform specific executable
     Executable {
+        /// The executable path
         path: PathBuf,
+        /// The executable icon
         icon: Option<iced::widget::image::Handle>,
     },
+    /// A shell command to be run
     Command {
+        /// The command to run
         command: String,
         alias: String,
+        /// The icon to display in search results
         icon: Option<iced::widget::image::Handle>,
     },
+    /// Any builtin function
     Builtin {
+        /// The [`AppCommand`] to run
         command: AppCommand,
     },
 }
 
+/// The main app struct, that represents an "App"
+///
+/// This struct represents a command that rustcast can perform, providing the rustcast
+/// the data needed to search for the app, to display the app in search results, and to actually
+/// run the app.
 #[derive(Clone, Debug)]
 pub struct App {
+    /// The app name
     pub name: String,
+
+    /// An alias to use while searching
     pub alias: String,
+
+    /// The description for the app
     pub desc: String,
+
+    /// The information specific to a certain type of app
     pub app_data: AppData,
 
+    /// A unique ID generated for each instance of an App.
+    /// 
+    /// This is made by atomically incrementing a counter every time a new instance of the struct
+    /// is made. The implementation of [`PartialEq`] uses this.
     id: usize,
 }
 
@@ -67,6 +88,7 @@ impl PartialEq for App {
 }
 
 impl App {
+    /// Creates a new instance
     pub fn new(name: &str, name_lc: &str, desc: &str, data: AppData) -> Self {
         static ID: AtomicUsize = AtomicUsize::new(0);
 
@@ -79,10 +101,16 @@ impl App {
         }
     }
 
+    /// Creates a new instance of the type [`AppData::Builtin`].
+    /// 
+    /// This is mainly for convenience.
     pub fn new_builtin(name: &str, name_lc: &str, desc: &str, command: AppCommand) -> Self {
         Self::new(name, name_lc, desc, AppData::Builtin { command })
     }
 
+    /// Creates a new instance of the type [`AppData::Executable`].
+    /// 
+    /// This is mainly for convenience.
     pub fn new_executable(
         name: &str,
         name_lc: &str,
