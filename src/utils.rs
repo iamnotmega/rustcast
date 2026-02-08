@@ -75,15 +75,13 @@ fn search_dir(
             #[cfg(debug_assertions)]
             tracing::trace!("Executable loaded  [kfolder]: {:?}", path.to_str());
 
-            Some(App {
-                open_command: AppCommand::Function(Function::OpenApp(
-                    path.to_string_lossy().to_string(),
-                )),
-                name: name.clone(),
-                name_lc: name.to_lowercase(),
-                icons: None,
-                desc: "Application".to_string(),
-            })
+            Some(App::new_executable(
+                &name,
+                &name.to_lowercase(),
+                "Application",
+                path,
+                None
+            ))
         })
 }
 

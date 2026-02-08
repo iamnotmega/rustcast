@@ -55,24 +55,26 @@ pub fn get_apps_from_registry(apps: &mut Vec<App>) {
             }
             // if there is something, it will be in the form of
             // "C:\Program Files\Microsoft Office\Office16\WINWORD.EXE",0
-            let exe_path = exe_path.to_string_lossy().to_string();
-            let exe = exe_path.split(",").next().unwrap().to_string();
+            let exe_string = exe_path
+                .to_string_lossy();
+            let exe_string = exe_string
+                .split(",")
+                .next()
+                .unwrap();
 
             // make sure it ends with .exe
-            if !exe.ends_with(".exe") {
+            if !exe_string.ends_with(".exe") {
                 return;
             }
 
             if !display_name.is_empty() {
-                use crate::{app::apps::AppCommand, commands::Function};
-
-                apps.push(App {
-                    open_command: AppCommand::Function(Function::OpenApp(exe)),
-                    name: display_name.clone().into_string().unwrap(),
-                    name_lc: display_name.clone().into_string().unwrap().to_lowercase(),
-                    icons: None,
-                    desc: "Application".to_string(),
-                })
+                apps.push(App::new_executable(
+                    &display_name.clone().to_string_lossy(),
+                    &display_name.clone().to_string_lossy().to_lowercase(),
+                    "Application",
+                    exe_path,
+                    None,
+                ))
             }
         });
     });
@@ -114,19 +116,20 @@ pub fn index_start_menu() -> Vec<App> {
             match lnk {
                 Ok(x) => {
                     let target = x.link_target();
+                    let file_name = path.file_name().to_string_lossy().to_string();
 
                     match target {
-                        Some(target) => Some(App {
-                            open_command: AppCommand::Function(Function::OpenApp(target.clone())),
-                            desc: "".to_string(),
-                            icons: None,
-                            name: path.file_name().to_string_lossy().to_string(),
-                            name_lc: path.file_name().to_string_lossy().to_string(),
-                        }),
+                        Some(target) => Some(App::new_executable(
+                            &file_name,
+                            &file_name,
+                            "",
+                            PathBuf::from(target.clone()),
+                            None,
+                        )),
                         None => {
                             tracing::debug!(
                                 "Link at {} has no target, skipped",
-                                path.path().to_string_lossy()
+                                path.path().display()
                             );
                             None
                         }
