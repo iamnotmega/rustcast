@@ -191,13 +191,30 @@ impl App {
             .height(50);
 
         if theme.show_icons
-            && let AppData::Executable { icon: Some(ref icon), .. } = self.app_data
         {
-            row = row.push(
-                container(Viewer::new(icon).height(40).width(40))
-                    .width(40)
-                    .height(40),
-            );
+            match self.app_data {
+                AppData::Command { icon: Some(ref icon), .. } |
+                AppData::Executable { icon: Some(ref icon), ..} => {
+                    row = row.push(
+                        container(Viewer::new(icon).height(40).width(40))
+                            .width(40)
+                            .height(40),
+                    );
+                },
+                AppData::Builtin { .. } => {
+                    let icon = get_img_handle(Path::new(
+                        "/Applications/Rustcast.app/Contents/Resources/icon.icns",
+                    ));
+                    if let Some(icon) = icon {
+                        row = row.push(
+                            container(Viewer::new(icon).height(40).width(40))
+                                .width(40)
+                                .height(40),
+                        );
+                    }
+                }
+                _ => {}
+            }
         }
         row = row.push(container(text_block).width(Fill));
 
