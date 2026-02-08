@@ -30,8 +30,19 @@ pub enum AppCommand {
     Display,
 }
 
+impl PartialEq for AppCommand {
+    fn eq(&self, other: &Self) -> bool {
+        // TODO: make an *actual* impl of PartialEq for Message
+        match (&self, &other) {
+            (Self::Function(a), Self::Function(b)) => a == b,
+            (Self::Display, Self::Display) => true,
+            _ => false
+        }
+    }
+}
+
 /// A container for [`App`] data specific to a certain type of app.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum AppData {
     /// A platform specific executable
     Executable {
@@ -83,11 +94,15 @@ pub struct App {
 
 impl PartialEq for App {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.app_data == other.app_data &&
+            self.name == other.name
     }
 }
 
 impl App {
+    /// Get the internal id
+    pub fn id(&self) -> usize { self.id }
+
     /// Creates a new instance
     pub fn new(name: &str, name_lc: &str, desc: &str, data: AppData) -> Self {
         static ID: AtomicUsize = AtomicUsize::new(0);
