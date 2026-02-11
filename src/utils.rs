@@ -2,7 +2,6 @@
 use std::{
     io,
     path::{Path, PathBuf},
-    thread,
     time::Instant,
 };
 
@@ -47,7 +46,6 @@ fn search_dir(
     include_patterns: &[glob::Pattern],
     max_depth: usize,
 ) -> impl ParallelIterator<Item = App> {
-    use crate::{app::apps::AppCommand, commands::Function};
     use walkdir::WalkDir;
 
     WalkDir::new(path.as_ref())
@@ -75,15 +73,13 @@ fn search_dir(
             #[cfg(debug_assertions)]
             tracing::trace!("Executable loaded  [kfolder]: {:?}", path.to_str());
 
-            Some(App {
-                open_command: AppCommand::Function(Function::OpenApp(
-                    path.to_string_lossy().to_string(),
-                )),
-                name: name.clone(),
-                name_lc: name.to_lowercase(),
-                icons: None,
-                desc: "Application".to_string(),
-            })
+            Some(App::new_executable(
+                &name,
+                &name.to_lowercase(),
+                "Application",
+                path,
+                None,
+            ))
         })
 }
 
@@ -105,32 +101,30 @@ pub fn read_config_file(file_path: &Path) -> anyhow::Result<Config> {
 }
 
 // TODO: this should also work with args
-pub fn open_application(path: &str) {
-    let path_string = path.to_string();
-    thread::spawn(move || {
-        let path = &path_string;
-        #[cfg(target_os = "windows")]
-        {
-            println!("Opening application: {}", path);
+pub fn open_application(path: impl AsRef<Path>) {
+    let path = path.as_ref();
 
-            Command::new("powershell")
-                .arg(format!("Start-Process '{}'", path))
-                .status()
-                .ok();
-        }
+    #[cfg(target_os = "windows")]
+    {
+        println!("Opening application: {}", path.display());
 
-        #[cfg(target_os = "macos")]
-        {
-            NSWorkspace::new().openURL(&NSURL::fileURLWithPath(
-                &objc2_foundation::NSString::from_str(path),
-            ));
-        }
+        Command::new("powershell")
+            .arg(format!("Start-Process '{}'", path.display()))
+            .status()
+            .ok();
+    }
 
-        #[cfg(target_os = "linux")]
-        {
-            Command::new(path).status().ok();
-        }
-    });
+    #[cfg(target_os = "macos")]
+    {
+        NSWorkspace::new().openURL(&NSURL::fileURLWithPath(
+            &objc2_foundation::NSString::from_str(&path.to_string_lossy()),
+        ));
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        Command::new(path).status().ok();
+    }
 }
 
 pub fn index_installed_apps(config: &Config) -> anyhow::Result<Vec<App>> {
