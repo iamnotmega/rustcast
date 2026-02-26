@@ -42,13 +42,13 @@ fn main() -> iced::Result {
 
     let show_hide = config.toggle_hotkey.parse().unwrap();
 
-    let mut hotkeys = vec![show_hide];
-
-    if let Some(show_clipboard) = &config.clipboard_hotkey
-        && let Some(cb_page_hk) = show_clipboard.parse().ok()
-    {
-        hotkeys.push(cb_page_hk);
-    }
+    let hotkeys = vec![
+        show_hide,
+        config
+            .clipboard_hotkey
+            .parse()
+            .unwrap_or("SUPER+SHIFT+C".parse().unwrap()),
+    ];
 
     manager
         .register_all(&hotkeys)
