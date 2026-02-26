@@ -96,12 +96,18 @@ pub struct Tile {
     frontmost: Option<Retained<NSRunningApplication>>,
     pub config: Config,
     /// The opening hotkey
-    hotkey: HotKey,
-    clipboard_hotkey: Option<HotKey>,
+    hotkeys: Hotkeys,
     clipboard_content: Vec<ClipBoardContentType>,
     tray_icon: Option<TrayIcon>,
     sender: Option<ExtSender>,
     page: Page,
+    pub height: f32,
+}
+
+#[derive(Clone)]
+pub struct Hotkeys {
+    pub toggle: HotKey,
+    pub clipboard_hotkey: HotKey,
 }
 
 impl Tile {

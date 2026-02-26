@@ -12,8 +12,9 @@ use iced::{Length::Fill, widget::text_input};
 
 use rayon::slice::ParallelSliceMut;
 
+use crate::app::DEFAULT_WINDOW_HEIGHT;
 use crate::app::pages::emoji::emoji_page;
-use crate::app::tile::AppIndex;
+use crate::app::tile::{AppIndex, Hotkeys};
 use crate::config::Theme;
 use crate::styles::{contents_style, rustcast_text_input_style, tint, with_alpha};
 use crate::{app::WINDOW_WIDTH, platform};
@@ -42,6 +43,14 @@ pub fn new(hotkey: HotKey, config: &Config) -> (Tile, Task<Message>) {
     options.par_sort_by_key(|x| x.name.len());
     let options = AppIndex::from_apps(options);
 
+    let hotkeys = Hotkeys {
+        toggle: hotkey,
+        clipboard_hotkey: config
+            .clipboard_hotkey
+            .parse()
+            .unwrap_or("SUPER+SHIFT+C".parse().unwrap()),
+    };
+
     (
         Tile {
             query: String::new(),
@@ -50,12 +59,8 @@ pub fn new(hotkey: HotKey, config: &Config) -> (Tile, Task<Message>) {
             results: vec![],
             options,
             emoji_apps: AppIndex::from_apps(App::emoji_apps()),
-            hotkey,
+            hotkeys,
             visible: true,
-            clipboard_hotkey: config
-                .clipboard_hotkey
-                .clone()
-                .and_then(|x| x.parse::<HotKey>().ok()),
             frontmost: None,
             focused: false,
             config: config.clone(),
@@ -64,6 +69,7 @@ pub fn new(hotkey: HotKey, config: &Config) -> (Tile, Task<Message>) {
             tray_icon: None,
             sender: None,
             page: Page::Main,
+            height: DEFAULT_WINDOW_HEIGHT,
         },
         Task::batch([open.map(|_| Message::OpenWindow)]),
     )

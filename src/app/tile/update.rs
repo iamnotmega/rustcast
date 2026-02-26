@@ -9,6 +9,7 @@ use iced::widget::image::Handle;
 use iced::widget::operation;
 use iced::widget::operation::AbsoluteOffset;
 use iced::window;
+use iced::window::Id;
 use rayon::slice::ParallelSliceMut;
 
 use crate::app::WINDOW_WIDTH;
@@ -50,7 +51,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
         Message::SetSender(sender) => {
             tile.sender = Some(sender.clone());
             if tile.config.show_trayicon {
-                tile.tray_icon = Some(menu_icon(tile.hotkey, sender));
+                tile.tray_icon = Some(menu_icon(tile.hotkeys.toggle, sender));
             }
             Task::none()
         }
@@ -158,6 +159,17 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             ])
         }
 
+        Message::ResizeWindow(id, height) => {
+            tile.height = height;
+            window::resize(
+                id,
+                iced::Size {
+                    width: WINDOW_WIDTH,
+                    height,
+                },
+            )
+        }
+
         Message::OpenFocused => match tile.results.get(tile.focus_id as usize) {
             Some(App {
                 open_command: AppCommand::Function(func),
@@ -198,11 +210,8 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
         }
 
         Message::KeyPressed(hk_id) => {
-            let is_clipboard_hotkey = tile
-                .clipboard_hotkey
-                .map(|hotkey| hotkey.id == hk_id)
-                .unwrap_or(false);
-            let is_open_hotkey = hk_id == tile.hotkey.id;
+            let is_clipboard_hotkey = tile.hotkeys.clipboard_hotkey.id == hk_id;
+            let is_open_hotkey = hk_id == tile.hotkeys.toggle.id;
 
             let clipboard_page_task = if is_clipboard_hotkey {
                 Task::done(Message::SwitchToPage(Page::ClipboardHistory))
@@ -214,7 +223,12 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
 
             if is_open_hotkey || is_clipboard_hotkey {
                 if !tile.visible {
-                    return Task::batch([open_window(), clipboard_page_task]);
+                    tile.height = if is_clipboard_hotkey {
+                        ((7 * 55) + 35 + DEFAULT_WINDOW_HEIGHT as usize) as f32
+                    } else {
+                        DEFAULT_WINDOW_HEIGHT
+                    };
+                    return Task::batch([open_window(tile.height), clipboard_page_task]);
                 }
 
                 tile.visible = !tile.visible;
@@ -316,6 +330,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
         }
 
         Message::SearchQueryChanged(input, id) => {
+            let mut task = Task::none();
             tile.focus_id = 0;
 
             if tile.config.haptic_feedback {
@@ -327,13 +342,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             let prev_size = tile.results.len();
             if tile.query_lc.is_empty() && tile.page != Page::ClipboardHistory {
                 tile.results = vec![];
-                return window::resize(
-                    id,
-                    iced::Size {
-                        width: WINDOW_WIDTH,
-                        height: DEFAULT_WINDOW_HEIGHT,
-                    },
-                );
+                return Task::done(Message::ResizeWindow(id, DEFAULT_WINDOW_HEIGHT));
             } else if tile.query_lc == "randomvar" {
                 let rand_num = rand::random_range(0..100);
                 tile.results = vec![App {
@@ -343,13 +352,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                     name: rand_num.to_string(),
                     name_lc: String::new(),
                 }];
-                return window::resize(
-                    id,
-                    iced::Size {
-                        width: WINDOW_WIDTH,
-                        height: 55. + DEFAULT_WINDOW_HEIGHT,
-                    },
-                );
+                return single_item_resize_task(id);
             } else if tile.query_lc == "67" {
                 tile.results = vec![App {
                     open_command: AppCommand::Function(Function::RandomVar(67)),
@@ -358,13 +361,7 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                     name: 67.to_string(),
                     name_lc: String::new(),
                 }];
-                return window::resize(
-                    id,
-                    iced::Size {
-                        width: WINDOW_WIDTH,
-                        height: 55. + DEFAULT_WINDOW_HEIGHT,
-                    },
-                );
+                return single_item_resize_task(id);
             } else if tile.query_lc.ends_with("?") {
                 tile.results = vec![App {
                     open_command: AppCommand::Function(Function::GoogleSearch(tile.query.clone())),
@@ -373,14 +370,12 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
                     name: format!("Search for: {}", tile.query),
                     name_lc: String::new(),
                 }];
-                return window::resize(
-                    id,
-                    iced::Size::new(WINDOW_WIDTH, 55. + DEFAULT_WINDOW_HEIGHT),
-                );
             } else if tile.query_lc == "cbhist" {
+                task = task.chain(Task::done(Message::SwitchToPage(Page::ClipboardHistory)));
                 tile.page = Page::ClipboardHistory
-            } else if tile.query_lc == "main" {
-                tile.page = Page::Main
+            } else if tile.query_lc == "main" && tile.page != Page::Main {
+                task = task.chain(Task::done(Message::SwitchToPage(Page::Main)));
+                tile.page = Page::Main;
             }
             tile.handle_search_query_changed();
 
@@ -460,39 +455,38 @@ pub fn handle_update(tile: &mut Tile, message: Message) -> Task<Message> {
             let max_elem = min(5, new_length);
 
             if prev_size != new_length && tile.page != Page::ClipboardHistory {
-                Task::batch([
-                    window::resize(
+                task.chain(Task::batch([
+                    Task::done(Message::ResizeWindow(
                         id,
-                        iced::Size {
-                            width: WINDOW_WIDTH,
-                            height: ((max_elem * 55) + 35 + DEFAULT_WINDOW_HEIGHT as usize) as f32,
-                        },
-                    ),
+                        ((max_elem * 55) + 35 + DEFAULT_WINDOW_HEIGHT as usize) as f32,
+                    )),
                     Task::done(Message::ChangeFocus(ArrowKey::Left)),
-                ])
+                ]))
             } else if tile.page == Page::ClipboardHistory {
-                Task::batch([
-                    window::resize(
+                task.chain(Task::batch([
+                    Task::done(Message::ResizeWindow(
                         id,
-                        iced::Size {
-                            width: WINDOW_WIDTH,
-                            height: ((7 * 55) + 35 + DEFAULT_WINDOW_HEIGHT as usize) as f32,
-                        },
-                    ),
+                        ((7 * 55) + 35 + DEFAULT_WINDOW_HEIGHT as usize) as f32,
+                    )),
                     Task::done(Message::ChangeFocus(ArrowKey::Left)),
-                ])
+                ]))
             } else {
-                Task::none()
+                task
             }
         }
     }
 }
 
-fn open_window() -> Task<Message> {
-    Task::chain(
+fn open_window(height: f32) -> Task<Message> {
+    Task::batch([
         window::open(default_settings())
             .1
-            .map(|_| Message::OpenWindow),
+            .map(move |id| Message::ResizeWindow(id, height)),
+        Task::done(Message::OpenWindow),
         operation::focus("query"),
-    )
+    ])
+}
+
+fn single_item_resize_task(id: Id) -> Task<Message> {
+    Task::done(Message::ResizeWindow(id, 55. + DEFAULT_WINDOW_HEIGHT))
 }
