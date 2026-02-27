@@ -31,11 +31,7 @@ pub fn icns_data_to_handle(data: Vec<u8>) -> Option<Handle> {
     let icon_type = family.available_icons();
 
     let icon = family.get_icon_with_type(*icon_type.first()?).ok()?;
-    let image = RgbaImage::from_raw(
-        icon.width(),
-        icon.height(),
-        icon.data().to_vec(),
-    )?;
+    let image = RgbaImage::from_raw(icon.width(), icon.height(), icon.data().to_vec())?;
     Some(Handle::from_rgba(
         image.width(),
         image.height(),
