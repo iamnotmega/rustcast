@@ -1,127 +1,36 @@
 //! This has all the utility functions that rustcast uses
-use std::{
-    io,
-    path::{Path, PathBuf},
-    time::Instant,
-};
+use std::{path::Path, thread};
 
-use rayon::prelude::*;
+use iced::widget::image::Handle;
+use icns::IconFamily;
+use image::RgbaImage;
+use objc2_app_kit::NSWorkspace;
+use objc2_foundation::NSURL;
 
-#[cfg(target_os = "macos")]
-use {objc2_app_kit::NSWorkspace, objc2_foundation::NSURL};
+/// This logs an error to the error log file
+pub fn icns_data_to_handle(data: Vec<u8>) -> Option<Handle> {
+    let family = IconFamily::read(std::io::Cursor::new(&data)).ok()?;
 
-#[cfg(target_os = "linux")]
-use crate::cross_platform::linux::get_installed_linux_apps;
+    let icon_type = family.available_icons();
 
-#[cfg(any(target_os = "windows", target_os = "linux"))]
-use std::process::Command;
-
-use crate::app::apps::App;
-
-pub fn get_config_installation_dir() -> PathBuf {
-    if cfg!(target_os = "windows") {
-        std::env::var("LOCALAPPDATA").unwrap().into()
-    } else {
-        std::env::var("HOME").unwrap().into()
-    }
+    let icon = family.get_icon_with_type(*icon_type.first()?).ok()?;
+    let image = RgbaImage::from_raw(icon.width(), icon.height(), icon.data().to_vec())?;
+    Some(Handle::from_rgba(
+        image.width(),
+        image.height(),
+        image.into_raw(),
+    ))
 }
 
-pub fn get_config_file_path() -> PathBuf {
-    let home = get_config_installation_dir();
-
-    if cfg!(target_os = "windows") {
-        home.join("rustcast/config.toml")
-    } else {
-        home.join(".config/rustcast/config.toml")
-    }
+/// This converts an icns file to an iced image handle
+pub(crate) fn handle_from_icns(path: &Path) -> Option<Handle> {
+    let data = std::fs::read(path).ok()?;
+    icns_data_to_handle(data)
 }
 
-/// Recursively loads apps from a set of folders.
-///
-/// [`exclude_patterns`] is a set of glob patterns to include, while [`include_patterns`] is a set of
-/// patterns to include ignoring [`exclude_patterns`].
-fn search_dir(
-    path: impl AsRef<Path>,
-    exclude_patterns: &[glob::Pattern],
-    include_patterns: &[glob::Pattern],
-    max_depth: usize,
-) -> impl ParallelIterator<Item = App> {
-    use walkdir::WalkDir;
-
-    WalkDir::new(path.as_ref())
-        .follow_links(false)
-        .max_depth(max_depth)
-        .into_iter()
-        .par_bridge()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().is_some_and(|ext| ext == "exe"))
-        .filter_map(|entry| {
-            let path = entry.path();
-
-            if exclude_patterns.iter().any(|x| x.matches_path(path))
-                && !include_patterns.iter().any(|x| x.matches_path(path))
-            {
-                #[cfg(debug_assertions)]
-                tracing::trace!(
-                    target: "dir_app_search",
-                    "App excluded: {:?}", path.to_str()
-                );
-
-                return None;
-            }
-
-            let file_name = path.file_name().unwrap().to_string_lossy();
-            let name = file_name.replace(".exe", "");
-
-            #[cfg(debug_assertions)]
-            tracing::trace!(
-                target: "dir_app_search",
-                "App added: {:?}", path.to_str()
-            );
-
-            Some(App::new_executable(
-                &name,
-                &name.to_lowercase(),
-                "Application",
-                path,
-                None,
-            ))
-        })
-}
-
-use crate::config::Config;
-
-pub fn read_config_file(file_path: &Path) -> anyhow::Result<Config> {
-    match std::fs::read_to_string(file_path) {
-        Ok(a) => Ok(toml::from_str(&a)?),
-        Err(e) if e.kind() == io::ErrorKind::NotFound => {
-            let cfg = Config::default();
-            std::fs::write(
-                file_path,
-                toml::to_string(&cfg).unwrap_or_else(|x| x.to_string()),
-            )?;
-            Ok(cfg)
-        }
-        Err(e) => Err(e.into()),
-    }
-}
-
-// TODO: this should also work with args
-pub fn open_application(path: impl AsRef<Path>) {
-    let path = path.as_ref();
-
-    #[cfg(target_os = "windows")]
-    {
-        println!("Opening application: {}", path.display());
-
-        Command::new("powershell")
-            .arg(format!("Start-Process '{}'", path.display()))
-            .status()
-            .ok();
-    }
-
-    #[cfg(target_os = "macos")]
-    {
+/// Open the settings file with the system default editor
+pub fn open_settings() {
+    thread::spawn(move || {
         NSWorkspace::new().openURL(&NSURL::fileURLWithPath(
             &objc2_foundation::NSString::from_str(&path.to_string_lossy()),
         ));

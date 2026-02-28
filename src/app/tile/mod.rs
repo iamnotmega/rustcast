@@ -2,43 +2,38 @@
 pub mod elm;
 pub mod update;
 
-mod search_query;
-
-#[cfg(target_os = "windows")]
-use {
-    windows::Win32::Foundation::HWND, windows::Win32::UI::WindowsAndMessaging::SetForegroundWindow,
-};
-
-use std::{collections::BTreeMap, fs, ops::Bound, path::PathBuf, time::Duration};
-
-use iced::{
-    Subscription, Theme, event, futures,
-    futures::{
-        SinkExt,
-        channel::mpsc::{Sender, channel},
-    },
-    keyboard::{self, Modifiers, key::Named},
-    stream, window,
-};
-
-#[cfg(not(target_os = "linux"))]
-use global_hotkey::{GlobalHotKeyEvent, HotKeyState, hotkey::HotKey};
-
-use crate::{
-    app::{ArrowKey, Message, Move, Page, apps::App, tile::elm::default_app_paths},
-    clipboard::ClipBoardContentType,
-    config::Config,
-    cross_platform::open_settings,
-};
+use crate::app::{ArrowKey, Message, Move, Page};
+use crate::clipboard::ClipBoardContentType;
+use crate::config::Config;
+use crate::utils::open_settings;
+use crate::{app::apps::App, platform::default_app_paths};
 
 use arboard::Clipboard;
-use rayon::prelude::*;
-use tray_icon::TrayIcon;
+use global_hotkey::hotkey::HotKey;
+use global_hotkey::{GlobalHotKeyEvent, HotKeyState};
 
-#[cfg(target_os = "macos")]
+use iced::futures::SinkExt;
+use iced::futures::channel::mpsc::{Sender, channel};
+use iced::keyboard::Modifiers;
+use iced::{
+    Subscription, Theme, futures,
+    keyboard::{self, key::Named},
+    stream,
+};
+use iced::{event, window};
+
+use log::info;
 use objc2::rc::Retained;
 #[cfg(target_os = "macos")]
 use objc2_app_kit::NSRunningApplication;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use tray_icon::TrayIcon;
+
+use std::fmt::Debug;
+use std::fs;
+use std::ops::Bound;
+use std::time::Duration;
+use std::{collections::BTreeMap, path::Path};
 
 /// This is a wrapper around the sender to disable dropping
 #[derive(Clone, Debug)]
@@ -63,12 +58,20 @@ impl AppIndex {
             .take_while(move |(k, _)| k.starts_with(prefix))
             .map(|(_, v)| v)
     }
+    fn update_ranking(&mut self, name: &str) {
+        let app = match self.by_name.get_mut(name) {
+            Some(a) => a,
+            None => return,
+        };
+
+        app.ranking += 5;
+    }
 
     /// Factory function for creating
     pub fn from_apps(options: Vec<App>) -> Self {
         let mut bmap = BTreeMap::new();
         for app in options {
-            bmap.insert(app.alias.clone(), app);
+            bmap.insert(app.search_name.clone(), app);
         }
 
         AppIndex { by_name: bmap }
@@ -78,18 +81,23 @@ impl AppIndex {
 /// This is the base window, and its a "Tile"
 /// Its fields are:
 /// - Theme ([`iced::Theme`])
+/// - Focus "ID" (which element in the choices is currently selected)
 /// - Query (String)
 /// - Query Lowercase (String, but lowercase)
 /// - Previous Query Lowercase (String)
 /// - Results (Vec<[`App`]>) the results of the search
-/// - Options (Vec<[`App`]>) the options to search through
+/// - Options ([`AppIndex`]) the options to search through (is a BTreeMap wrapper)
+/// - Emoji Apps ([`AppIndex`]) emojis that are considered as "apps"
 /// - Visible (bool) whether the window is visible or not
 /// - Focused (bool) whether the window is focused or not
 /// - Frontmost ([`Option<Retained<NSRunningApplication>>`]) the frontmost application before the window was opened
 /// - Config ([`Config`]) the app's config
-/// - Open Hotkey ID (`u32`) the id of the hotkey that opens the window
+/// - Hotkeys, storing the hotkey used for directly opening to the clipboard history page, and
+///   opening the app
+/// - Sender (The [`ExtSender`] that sends messages, used by the tray icon currently)
 /// - Clipboard Content (`Vec<`[`ClipBoardContentType`]`>`) all of the cliboard contents
 /// - Page ([`Page`]) the current page of the window (main or clipboard history)
+/// - RustCast's height: to figure out which height to resize to
 #[derive(Clone)]
 pub struct Tile {
     pub theme: iced::Theme,
@@ -106,15 +114,18 @@ pub struct Tile {
     #[cfg(target_os = "windows")]
     frontmost: Option<HWND>,
     pub config: Config,
-    /// The opening hotkey
-    #[cfg(not(target_os = "linux"))]
-    hotkey: HotKey,
-    #[cfg(not(target_os = "linux"))]
-    clipboard_hotkey: Option<HotKey>,
+    hotkeys: Hotkeys,
     clipboard_content: Vec<ClipBoardContentType>,
     tray_icon: Option<TrayIcon>,
     sender: Option<ExtSender>,
     page: Page,
+    pub height: f32,
+}
+
+#[derive(Clone, Debug)]
+pub struct Hotkeys {
+    pub toggle: HotKey,
+    pub clipboard_hotkey: HotKey,
 }
 
 impl Tile {
@@ -299,7 +310,7 @@ fn handle_hot_reloading() -> impl futures::Stream<Item = Message> {
         let paths = default_app_paths();
         let mut total_files: usize = paths
             .par_iter()
-            .map(|dir| count_dirs_in_dir(&dir.to_owned().into()))
+            .map(|dir| count_dirs_in_dir(Path::new(dir)))
             .sum();
 
         loop {
@@ -310,7 +321,7 @@ fn handle_hot_reloading() -> impl futures::Stream<Item = Message> {
 
             let current_total_files: usize = paths
                 .par_iter()
-                .map(|dir| count_dirs_in_dir(&dir.to_owned().into()))
+                .map(|dir| count_dirs_in_dir(Path::new(dir)))
                 .sum();
 
             if current_content != content {
@@ -326,7 +337,8 @@ fn handle_hot_reloading() -> impl futures::Stream<Item = Message> {
     })
 }
 
-fn count_dirs_in_dir(dir: &PathBuf) -> usize {
+/// Helper fn for counting directories (since macos `.app`'s are directories) inside a directory
+fn count_dirs_in_dir(dir: impl AsRef<Path>) -> usize {
     // Read the directory; if it fails, treat as empty
     let entries = match fs::read_dir(dir) {
         Ok(e) => e,
@@ -339,12 +351,12 @@ fn count_dirs_in_dir(dir: &PathBuf) -> usize {
         .count()
 }
 
-/// This is the subscription function that handles hotkeys for hiding / showing the window
-#[cfg(not(target_os = "linux"))]
+/// This is the subscription function that handles hotkeys, e.g. for hiding / showing the window
 fn handle_hotkeys() -> impl futures::Stream<Item = Message> {
     stream::channel(100, async |mut output| {
         let receiver = GlobalHotKeyEvent::receiver();
         loop {
+            info!("Hotkey received");
             if let Ok(event) = receiver.recv()
                 && event.state == HotKeyState::Pressed
             {
@@ -411,6 +423,7 @@ fn handle_clipboard_history() -> impl futures::Stream<Item = Message> {
             if byte_rep != prev_byte_rep
                 && let Some(content) = &byte_rep
             {
+                info!("Adding item to cbhist");
                 output
                     .send(Message::ClipboardHistory(content.to_owned()))
                     .await
@@ -422,6 +435,7 @@ fn handle_clipboard_history() -> impl futures::Stream<Item = Message> {
     })
 }
 
+/// Handles the rx / receiver for sending and receiving messages
 fn handle_recipient() -> impl futures::Stream<Item = Message> {
     stream::channel(100, async |mut output| {
         let (sender, mut recipient) = channel(100);
@@ -430,11 +444,10 @@ fn handle_recipient() -> impl futures::Stream<Item = Message> {
         output.send(msg).await.expect("Sender not sent");
         loop {
             let abcd = recipient
-                .try_next()
+                .try_recv()
                 .map(async |msg| {
-                    if let Some(msg) = msg {
-                        output.send(msg).await.unwrap();
-                    }
+                    info!("Sending a message");
+                    output.send(msg).await.unwrap();
                 })
                 .ok();
 

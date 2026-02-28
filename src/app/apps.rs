@@ -2,11 +2,6 @@
 //!
 //! An "app" is effectively, one of the results that rustcast returns when you search for something
 
-use std::{
-    path::{Path, PathBuf},
-    sync::atomic::{AtomicUsize, Ordering},
-};
-
 use iced::{
     Alignment,
     Length::Fill,
@@ -19,7 +14,10 @@ use crate::{
     commands::Function,
     cross_platform::get_img_handle,
     styles::{result_button_style, result_row_container_style},
+    utils::icns_data_to_handle,
 };
+
+pub const ICNS_ICON: &[u8] = include_bytes!("../../docs/icon.icns");
 
 /// This tells each "App" what to do when it is clicked, whether it is a function, a message, or a display
 #[allow(dead_code)]
@@ -73,28 +71,20 @@ pub enum AppData {
 /// run the app.
 #[derive(Clone, Debug)]
 pub struct App {
-    /// The app name
-    pub name: String,
-
-    /// An alias to use while searching
-    pub alias: String,
-
-    /// The description for the app
+    pub ranking: i32,
+    pub open_command: AppCommand,
     pub desc: String,
-
-    /// The information specific to a certain type of app
-    pub app_data: AppData,
-
-    /// A unique ID generated for each instance of an App.
-    ///
-    /// This is made by atomically incrementing a counter every time a new instance of the struct
-    /// is made. The implementation of [`PartialEq`] uses this.
-    id: usize,
+    pub icons: Option<iced::widget::image::Handle>,
+    pub display_name: String,
+    pub search_name: String,
 }
 
 impl PartialEq for App {
     fn eq(&self, other: &Self) -> bool {
-        self.app_data == other.app_data && self.name == other.name
+        self.search_name == other.search_name
+            && self.icons == other.icons
+            && self.desc == other.desc
+            && self.display_name == other.display_name
     }
 }
 
@@ -149,15 +139,15 @@ impl App {
     pub fn emoji_apps() -> Vec<App> {
         emojis::iter()
             .filter(|x| x.unicode_version() < emojis::UnicodeVersion::new(17, 13))
-            .map(|x| {
-                App::new_builtin(
-                    x.name(),
-                    x.name(),
-                    "emoji",
-                    AppCommand::Function(Function::CopyToClipboard(ClipBoardContentType::Text(
-                        x.to_string(),
-                    ))),
-                )
+            .map(|x| App {
+                ranking: 0,
+                icons: None,
+                display_name: x.to_string(),
+                search_name: x.name().to_string(),
+                open_command: AppCommand::Function(Function::CopyToClipboard(
+                    ClipBoardContentType::Text(x.to_string()),
+                )),
+                desc: x.name().to_string(),
             })
             .collect()
     }
@@ -165,53 +155,57 @@ impl App {
     pub fn basic_apps() -> Vec<App> {
         let app_version = option_env!("APP_VERSION").unwrap_or("Unknown Version");
 
+        let icons = icns_data_to_handle(ICNS_ICON.to_vec());
+
         vec![
-            Self::new_builtin(
-                "Quit RustCast",
-                "quit",
-                RUSTCAST_DESC_NAME,
-                AppCommand::Function(Function::Quit),
-            ),
-            Self::new_builtin(
-                "Open RustCast Preferences",
-                "settings",
-                RUSTCAST_DESC_NAME,
-                AppCommand::Function(Function::OpenPrefPane),
-            ),
-            Self::new_builtin(
-                "Search for an Emoji",
-                "emoji",
-                RUSTCAST_DESC_NAME,
-                AppCommand::Message(Message::SwitchToPage(Page::EmojiSearch)),
-            ),
-            Self::new_builtin(
-                "Clipboard History",
-                "clipboard",
-                RUSTCAST_DESC_NAME,
-                AppCommand::Message(Message::SwitchToPage(Page::ClipboardHistory)),
-            ),
-            Self::new_builtin(
-                "Reload RustCast",
-                "refresh",
-                RUSTCAST_DESC_NAME,
-                AppCommand::Message(Message::ReloadConfig),
-            ),
-            Self::new_builtin(
-                &format!("Current RustCast Version: {app_version}"),
-                "version",
-                RUSTCAST_DESC_NAME,
-                AppCommand::Display,
-            ),
-            #[cfg(target_os = "macos")]
-            Self::new_executable(
-                "Finder",
-                "finder",
-                "Application",
-                PathBuf::from("/System/Library/CoreServices/Finder.app"),
-                get_img_handle(Path::new(
-                    "/System/Library/CoreServices/Finder.app/Contents/Resources/Finder.icns",
-                )),
-            ),
+            App {
+                ranking: 0,
+                open_command: AppCommand::Function(Function::Quit),
+                desc: RUSTCAST_DESC_NAME.to_string(),
+                icons: icons.clone(),
+                display_name: "Quit RustCast".to_string(),
+                search_name: "quit".to_string(),
+            },
+            App {
+                ranking: 0,
+                open_command: AppCommand::Function(Function::OpenPrefPane),
+                desc: RUSTCAST_DESC_NAME.to_string(),
+                icons: icons.clone(),
+                display_name: "Open RustCast Preferences".to_string(),
+                search_name: "settings".to_string(),
+            },
+            App {
+                ranking: 0,
+                open_command: AppCommand::Message(Message::SwitchToPage(Page::EmojiSearch)),
+                desc: RUSTCAST_DESC_NAME.to_string(),
+                icons: icons.clone(),
+                display_name: "Search for an Emoji".to_string(),
+                search_name: "emoji".to_string(),
+            },
+            App {
+                ranking: 0,
+                open_command: AppCommand::Message(Message::SwitchToPage(Page::ClipboardHistory)),
+                desc: RUSTCAST_DESC_NAME.to_string(),
+                icons: icons.clone(),
+                display_name: "Clipboard History".to_string(),
+                search_name: "clipboard".to_string(),
+            },
+            App {
+                ranking: 0,
+                open_command: AppCommand::Message(Message::ReloadConfig),
+                desc: RUSTCAST_DESC_NAME.to_string(),
+                icons: icons.clone(),
+                display_name: "Reload RustCast".to_string(),
+                search_name: "refresh".to_string(),
+            },
+            App {
+                ranking: 0,
+                open_command: AppCommand::Display,
+                desc: RUSTCAST_DESC_NAME.to_string(),
+                icons: icons.clone(),
+                display_name: format!("Current RustCast Version: {app_version}"),
+                search_name: "version".to_string(),
+            },
         ]
     }
 
@@ -228,7 +222,7 @@ impl App {
         let text_block = iced::widget::Column::new()
             .spacing(2)
             .push(
-                Text::new(self.name)
+                Text::new(self.display_name)
                     .font(theme.font())
                     .size(16)
                     .wrapping(Wrapping::WordOrGlyph)

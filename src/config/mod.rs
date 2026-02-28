@@ -19,7 +19,7 @@ mod patterns;
 #[serde(default)]
 pub struct Config {
     pub toggle_hotkey: String,
-    pub clipboard_hotkey: Option<String>,
+    pub clipboard_hotkey: String,
     pub buffer_rules: Buffer,
     pub theme: Theme,
 
@@ -28,6 +28,7 @@ pub struct Config {
     pub haptic_feedback: bool,
     pub show_trayicon: bool,
     pub shells: Vec<Shelly>,
+    pub log_path: String,
 
     #[serde(with = "include_patterns")]
     pub index_dirs: Vec<include_patterns::Pattern>,
@@ -53,13 +54,14 @@ impl Default for Config {
 
         Self {
             toggle_hotkey: "ALT+SPACE".to_string(),
-            clipboard_hotkey: None,
+            clipboard_hotkey: "SUPER+SHIFT+C".to_string(),
             buffer_rules: Buffer::default(),
             theme: Theme::default(),
             placeholder: String::from("Time to be productive!"),
             search_url: "https://google.com/search?q=%s".to_string(),
             haptic_feedback: false,
             show_trayicon: true,
+            log_path: "/tmp/rustcast.log".to_string(),
             shells: vec![],
             index_dirs,
             index_exclude_patterns: vec![],
@@ -203,17 +205,22 @@ impl Shelly {
         let self_clone = self.clone();
         let icon = self_clone.icon_path.map(|x| {
             let x = x.replace("~", &std::env::var("HOME").unwrap());
-            get_img_handle(&PathBuf::from(x))
+            if x.ends_with(".icns") {
+                handle_from_icns(Path::new(&x))
+            } else {
+                Some(Handle::from_path(Path::new(&x)))
+            }
         });
-        App::new(
-            &self_clone.alias,
-            &self_clone.alias_lc,
-            "Shell Command",
-            AppData::Command {
-                alias: self_clone.alias_lc.clone(),
-                command: self_clone.command,
-                icon: icon.flatten(),
-            },
-        )
+        App {
+            ranking: 0,
+            open_command: AppCommand::Function(Function::RunShellCommand(
+                self_clone.command,
+                self_clone.alias_lc.clone(),
+            )),
+            desc: "Shell Command".to_string(),
+            icons: icon,
+            display_name: self_clone.alias,
+            search_name: self_clone.alias_lc,
+        }
     }
 }

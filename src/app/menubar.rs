@@ -1,11 +1,10 @@
 //! This has the menubar icon logic for the app
 
-#[cfg(not(target_os = "linux"))]
+use std::io::Cursor;
+
 use global_hotkey::hotkey::{Code, HotKey, Modifiers};
-use image::DynamicImage;
-use tokio::runtime::Runtime;
-#[cfg(not(target_os = "linux"))]
-use tray_icon::menu::accelerator::Accelerator;
+use image::{DynamicImage, ImageReader};
+use log::info;
 use tray_icon::{
     Icon, TrayIcon, TrayIconBuilder,
     menu::{AboutMetadataBuilder, Icon as Ico, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
@@ -54,18 +53,12 @@ pub fn menu_icon(#[cfg(not(target_os = "linux"))] hotkey: HotKey, sender: ExtSen
 }
 
 fn get_image() -> DynamicImage {
-    #[cfg(target_os = "macos")]
-    {
-        use image::ImageReader;
-
-        let image_path = if cfg!(debug_assertions) && !cfg!(target_os = "macos") {
-            "docs/icon.png"
-        } else {
-            "/Applications/Rustcast.app/Contents/Resources/icon.png"
-        };
-
-        ImageReader::open(image_path).unwrap().decode().unwrap()
-    }
+    ImageReader::new(Cursor::new(include_bytes!("../../docs/icon.png")))
+        .with_guessed_format()
+        .unwrap()
+        .decode()
+        .unwrap()
+}
 
     // TODO: make it load the image
     #[cfg(any(target_os = "windows", target_os = "linux"))]
@@ -85,6 +78,7 @@ fn init_event_handler(sender: ExtSender) {
     MenuEvent::set_event_handler(Some(move |x: MenuEvent| {
         let sender = sender.clone();
         let sender = sender.0.clone();
+        info!("Menubar event called: {}", x.id.0);
         match x.id().0.as_str() {
             "refresh_rustcast" => {
                 runtime.spawn(async move {
